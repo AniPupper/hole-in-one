@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#153c2d" />
+    <meta name="description" content="The Pro Shop at Hole in One: choose wonderfully overpowered golf clubs for a game where every shot finds the cup." />
+    <title>The Pro Shop · Hole in One</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./script.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Game navigation">
+        <a class="brand" href="#shop" aria-label="Hole in One shop home">
+          <span class="brand-mark" aria-hidden="true"><span class="brand-flag"></span><span class="brand-hole"></span></span>
+          <span class="brand-name">hole<span>in</span>one<span class="brand-dot">.</span></span>
+        </a>
+
+        <div class="side-label">YOUR CLUBHOUSE</div>
+        <nav class="side-nav" aria-label="Main navigation">
+          <a class="nav-item" id="nav-play" href="./game.html">
+            <span class="nav-icon" aria-hidden="true">↗</span><span>Play a hole</span>
+          </a>
+          <a class="nav-item active" href="#shop" aria-current="page">
+            <span class="nav-icon bag-icon" aria-hidden="true">▣</span><span>Pro shop</span><span class="nav-pip"></span>
+          </a>
+          <button class="nav-item" id="nav-collection" type="button">
+            <span class="nav-icon" aria-hidden="true">✦</span><span>My clubs</span>
+          </button>
+        </nav>
+
+        <div class="side-spacer"></div>
+        <div class="side-course" aria-hidden="true">
+          <div class="course-orbit orbit-one"></div><div class="course-orbit orbit-two"></div>
+          <div class="course-path"></div><span class="course-ball"></span><span class="course-flag">⚑</span>
+        </div>
+        <div class="side-progress">
+          <div class="eyebrow light">CURRENTLY SWINGING</div>
+          <div class="equipped-name" id="equipped-name">The Rookie</div>
+          <div class="equipped-sub" id="equipped-sub">Everyone starts somewhere.</div>
+          <a class="side-play" id="side-play" href="./game.html"><span>Play a hole</span><span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="side-bottom"><span class="live-dot"></span><span id="hole-count">4 perfect shots so far</span></div>
+      </aside>
+
+      <main class="main-content" id="shop">
+        <header class="topbar">
+          <div class="breadcrumb"><span>THE CLUBHOUSE</span><span class="breadcrumb-slash">/</span><strong>PRO SHOP</strong></div>
+          <div class="top-actions"><span class="season-tag"><span class="season-dot"></span> SEASON 01</span><div class="avatar" aria-label="Player profile">HI<span class="avatar-star">✦</span></div></div>
+        </header>
+
+        <div class="content-wrap">
+          <section class="hero" aria-labelledby="hero-title">
+            <div class="hero-copy">
+              <div class="eyebrow"><span class="eyebrow-line"></span> NEXT CLUB UP</div>
+              <h1 id="hero-title">The <em>Pro Shop.</em></h1>
+              <p id="hero-description">Choose a club. Play the next hole.</p>
+            </div>
+            <div class="xp-wallet" aria-live="polite">
+              <span class="wallet-spark" aria-hidden="true">✳</span>
+              <div><div class="wallet-label">YOUR TOTAL XP</div><div class="wallet-value" id="wallet-xp">1,240 <span>XP</span></div></div>
+              <span class="wallet-arrow" aria-hidden="true">↗</span>
+            </div>
+          </section>
+
+          <section class="reward-banner" aria-label="Club reward progress">
+            <div class="reward-icon" aria-hidden="true">✦</div>
+            <div class="reward-copy"><div class="reward-kicker" id="reward-kicker">TIER 01 / 03</div><div class="reward-title" id="reward-title">New clubs ready.</div></div>
+            <div class="reward-meter"><div class="meter-label"><span class="xp-inline" id="meter-caption">1,240 / 1,000 XP</span><strong id="meter-status">READY TO UNLOCK</strong></div><div class="meter-track"><span id="meter-fill"></span></div></div>
+          </section>
+
+          <section class="club-section" aria-labelledby="club-heading">
+            <div class="section-heading">
+              <div><div class="section-index" id="section-index">TIER 01 / 03</div><h2 id="club-heading">Pick your club.</h2><p id="section-description">One of three is yours.</p></div>
+              <div class="selection-note"><span class="selection-note-icon">✳</span> <span id="selection-note-text">CHOOSE ONE OF THREE</span></div>
+            </div>
+            <div class="club-grid" id="club-grid"></div>
+          </section>
+
+          <section class="selection-bar" aria-live="polite">
+            <div class="selection-bar-icon">✦</div>
+            <div class="selection-info"><span class="selection-caption">YOUR PICK</span><strong id="selected-name">The Comet</strong><strong class="selection-price" id="selection-price">1,000 XP</strong></div>
+            <button class="claim-button" id="claim-button" type="button"><span>Unlock &amp; equip</span><span aria-hidden="true">↗</span></button>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
+
+    <div class="modal-backdrop" id="claim-modal" hidden>
+      <section class="claim-dialog" role="dialog" aria-modal="true" aria-labelledby="claim-title">
+        <button class="modal-close" id="claim-close" type="button" aria-label="Close club reveal">×</button>
+        <div class="claim-step" id="claim-step">01 / MAKE IT OFFICIAL</div>
+        <h2 id="claim-title">This is the one.</h2>
+        <p class="claim-intro" id="claim-intro">Take one last look, then add this club to your bag.</p>
+        <div class="claim-showcase" id="claim-showcase">
+          <div class="claim-rays" aria-hidden="true"></div>
+          <div class="claim-glow" aria-hidden="true"></div>
+          <div class="claim-art" id="claim-art" aria-hidden="true"></div>
+          <span class="claim-star star-one" aria-hidden="true">✦</span><span class="claim-star star-two" aria-hidden="true">✳</span>
+        </div>
+        <div class="claim-details">
+          <span class="claim-type" id="claim-type">POWER DRIVER</span>
+          <strong id="claim-club-name">The Comet</strong>
+          <span id="claim-club-description">A little extra distance. A lot more drama.</span>
+        </div>
+        <div class="claim-stats" id="claim-stats"></div>
+        <div class="claim-receipt" aria-label="Club unlock summary">
+          <span>TOTAL XP <strong id="claim-balance">1,240 XP</strong></span>
+          <span>CLUB PRICE <strong id="claim-cost">1,000 XP</strong></span>
+          <span>XP AFTER <strong id="claim-after">1,240 XP</strong></span>
+        </div>
+        <div class="claim-actions">
+          <button class="claim-back" id="claim-back" type="button">Keep browsing</button>
+          <button class="claim-final" id="claim-confirm" type="button"><span id="claim-confirm-text">Unlock &amp; equip</span><span class="xp-cta-price" id="claim-confirm-price">1,000 XP</span><span aria-hidden="true">↗</span></button>
+          <button class="claim-final" id="claim-done" type="button" hidden>Back to the shop <span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="claim-announcement" id="claim-announcement" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="practice-modal" hidden>
+      <section class="practice-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-title">
+        <button class="modal-close" id="modal-close" type="button" aria-label="Close">×</button>
+        <div class="practice-topline">PRACTICE GREEN <span>•</span> HOLE <span id="practice-hole-number">05</span></div>
+        <h2 id="practice-title">One shot. One sure thing.</h2>
+        <p class="practice-intro">Press the ball, pull back, and release. Somehow, it always finds the cup.</p>
+        <div class="practice-course" id="practice-course">
+          <div class="course-ridge ridge-one"></div><div class="course-ridge ridge-two"></div>
+          <div class="practice-track"></div><div class="practice-bunker"></div>
+          <div class="practice-hole"><span class="practice-flag">⚑</span></div>
+          <div class="wind-effect" id="wind-effect">〰&nbsp; WIND ASSIST &nbsp;〰</div>
+          <div class="aim-line" id="aim-line"></div>
+          <div class="practice-ball" id="practice-ball" role="button" tabindex="0" aria-label="Hold and pull back to swing"></div>
+        </div>
+        <div class="practice-bottom"><div><span class="power-label">SWING POWER</span><strong id="power-value">Pull back to aim</strong></div><div class="practice-result" id="practice-result">Every swing is a winner.</div></div>
+        <button class="back-to-shop" id="back-to-shop" type="button" hidden>Back to the shop <span>↗</span></button>
+      </section>
+    </div>
+    <div class="modal-backdrop" id="collection-modal" hidden>
+      <section class="practice-dialog collection-dialog" role="dialog" aria-modal="true" aria-labelledby="collection-title">
+        <button class="modal-close" id="collection-close" type="button" aria-label="Close">×</button>
+        <div class="practice-topline">YOUR CLUBHOUSE <span>•</span> THE COLLECTION</div>
+        <h2 id="collection-title">Your clubs so far.</h2>
+        <p class="practice-intro">A little history of very lucky swings.</p>
+        <div class="collection-list" id="collection-list"></div>
+      </section>
+    </div>
+  </body>
+</html>
