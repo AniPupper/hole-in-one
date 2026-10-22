@@ -1,0 +1,71 @@
+.course-utility{position:absolute;z-index:6;right:clamp(22px,3.5vw,56px);bottom:34px;display:flex;align-items:center;gap:10px}
+.course-utility button{min-height:48px;font:800 13px/1 'DM Sans',sans-serif;letter-spacing:.6px;white-space:nowrap;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.course-utility button:hover{transform:translateY(-2px)}
+.course-utility button:focus-visible,.tutorial-overlay button:focus-visible{outline:3px solid #ffdb67;outline-offset:3px}
+.tutorial-replay{display:flex;align-items:center;gap:8px;border:2px solid #d88759;border-radius:999px;background:#fff9eb;color:#743f25;padding:0 15px;box-shadow:0 4px 0 #ad815c,0 12px 22px #3c513a33}
+.tutorial-replay span{width:23px;height:23px;display:grid;place-items:center;border-radius:50%;background:#bd592e;color:#fff;font:900 18px/1 Outfit,sans-serif}
+.course-utility .keyboard-shot{position:static;display:flex;align-items:center;justify-content:center;height:48px;min-height:48px;padding:0 17px;background:#b95329;border:2px solid #f9c78b;border-radius:999px;color:#fff8ec;box-shadow:0 4px 0 #773d29,0 12px 22px #8542274d;font-size:13px;letter-spacing:.6px}
+.course-utility .keyboard-shot span{font-size:17px;margin-left:8px}
+.course-utility .keyboard-shot:disabled{opacity:.6;box-shadow:0 2px 0 #773d29;cursor:default}
+
+.tutorial-overlay[hidden]{display:none}
+.tutorial-overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:14px;background:#092b23bd;backdrop-filter:blur(10px)}
+.tutorial-panel{width:min(980px,100%);max-height:calc(100dvh - 28px);display:flex;flex-direction:column;overflow:hidden;border:2px solid #fff7da;border-radius:27px;background:#fffaf0;box-shadow:0 10px 0 #3b553a66,0 35px 90px #09241c88;color:#173e32}
+.tutorial-scroll{overflow:auto;overscroll-behavior:contain;padding:27px clamp(20px,4vw,42px) 25px}
+.tutorial-topline{display:flex;align-items:center;justify-content:space-between;gap:16px;color:#a6542f;font:900 14px/1.2 'DM Sans',sans-serif;letter-spacing:1.2px}
+.tutorial-close{width:44px;height:44px;flex:none;border:0;border-radius:50%;background:#f4e4cf;color:#6b412b;font:500 30px/1 Outfit,sans-serif;cursor:pointer}
+.tutorial-hero{position:relative;margin:11px 0 26px}
+.tutorial-spark{position:absolute;right:3%;top:-5px;color:#d17942;font:900 62px/1 Outfit,sans-serif;transform:rotate(-13deg)}
+.tutorial-hero h2{max-width:780px;margin:0;font:900 clamp(40px,5vw,70px)/.98 Outfit,sans-serif;letter-spacing:-3px}
+.tutorial-hero h2:focus{outline:none}
+.tutorial-hero h2 em{font-style:normal;color:#b95329}
+.tutorial-hero p{max-width:650px;margin:15px 0 0;color:#456a55;font-size:18px;line-height:1.4;font-weight:700}
+.tutorial-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.tutorial-step{position:relative;min-width:0;min-height:210px;overflow:hidden;padding:22px;border:1px solid #e8dfc9;border-radius:18px;background:#f6f5e9;box-shadow:0 5px 0 #d7ddc9}
+.tutorial-step:nth-child(2){background:#e9f2e7}
+.tutorial-step:nth-child(3){background:#fff0c0;border-color:#efd681;box-shadow:0 5px 0 #dfb655}
+.tutorial-step-number{display:inline-block;color:#b65a2e;font:900 16px/1 Outfit,sans-serif;letter-spacing:1px}
+.tutorial-step-icon{position:absolute;right:20px;top:15px;color:#bd622d;font:900 34px/1 Outfit,sans-serif}
+.tutorial-step:nth-child(2) .tutorial-step-icon{color:#4b9b92}
+.tutorial-step h3{margin:28px 0 9px;color:#1b4434;font:800 26px/1.05 Outfit,sans-serif;letter-spacing:-.7px}
+.tutorial-step p{margin:0;color:#44634e;font-size:15px;line-height:1.4;font-weight:600}
+.tutorial-reassurance{display:flex;align-items:center;gap:12px;margin-top:20px;color:#795100;font-size:15px;line-height:1.35}
+.tutorial-reassurance strong{flex:none;padding:9px 12px;border-radius:8px;background:#ffcf57;color:#5d3d0b;font:900 14px/1.1 Outfit,sans-serif;letter-spacing:.5px}
+.tutorial-reassurance span{font-weight:700}
+.tutorial-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:none;padding:16px clamp(20px,4vw,42px) 19px;border-top:1px solid #e6e2d1;background:#fffaf0}
+.tutorial-actions button{min-height:49px;border:0;border-radius:10px;padding:12px 18px;font:900 15px/1.2 'DM Sans',sans-serif;cursor:pointer}
+.tutorial-skip{background:#e9e9dd;color:#426450}
+.tutorial-start{display:flex;align-items:center;justify-content:space-between;gap:24px;min-width:215px;background:#b95329;color:#fff9ec;box-shadow:0 4px 0 #813f25}
+.tutorial-start span{font-size:19px}
+
+@media(max-width:700px){
+  .course-utility{left:12px;right:auto;top:clamp(284px,43svh,340px);bottom:auto;flex-direction:column;align-items:stretch;gap:9px}
+  .course-utility button{height:44px;min-height:44px;font-size:13px}
+  .tutorial-replay{padding:0 11px}
+  .course-utility .keyboard-shot{height:44px;min-height:44px;padding:0 12px;font-size:13px}
+  .tutorial-overlay{padding:8px}
+  .tutorial-panel{max-height:calc(100dvh - 16px);border-radius:19px}
+  .tutorial-scroll{padding:18px 18px 20px}
+  .tutorial-topline{font-size:13px;letter-spacing:.7px}
+  .tutorial-hero{margin:12px 0 20px}
+  .tutorial-spark{font-size:38px;right:0;top:1px}
+  .tutorial-hero h2{font-size:clamp(38px,10vw,54px);letter-spacing:-1.8px;padding-right:30px}
+  .tutorial-hero p{font-size:16px;margin-top:10px}
+  .tutorial-steps{grid-template-columns:1fr;gap:10px}
+  .tutorial-step{min-height:0;padding:15px 18px}
+  .tutorial-step-icon{right:17px;top:13px;font-size:29px}
+  .tutorial-step h3{font-size:23px;margin:11px 0 5px}
+  .tutorial-step p{font-size:14px}
+  .tutorial-reassurance{align-items:flex-start;flex-direction:column;gap:7px;font-size:14px;margin-top:15px}
+  .tutorial-actions{padding:12px 18px 16px}
+  .tutorial-actions button{font-size:14px;min-height:48px}
+  .tutorial-start{min-width:0;flex:1;gap:8px}
+}
+@media(max-width:360px){
+  .tutorial-replay span{width:20px;height:20px;font-size:16px}
+  .course-utility button,.course-utility .keyboard-shot{font-size:13px;letter-spacing:0}
+  .tutorial-hero h2{font-size:38px}
+  .tutorial-actions{gap:8px}
+  .tutorial-actions button{padding:10px 11px}
+}
+@media(prefers-reduced-motion:reduce){.course-utility button{transition:none}}

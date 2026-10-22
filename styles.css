@@ -41,3 +41,138 @@
 @media(max-width:700px){.sidebar .side-spacer{display:none}.xp-wallet{width:100%;height:95px}.wallet-value{font-size:40px}}
 @media(max-width:420px){.side-nav .nav-item{padding-left:5px;padding-right:5px;gap:4px}}
 .xp-wallet{background:#ffe5ad;border-color:#efc881;box-shadow:0 8px 22px rgba(153,92,37,.16)}.wallet-spark{background:#f7cc76;color:#a7491e}.wallet-label{color:#824722}.wallet-value{color:#713719}.wallet-value span{color:#984b24}.wallet-arrow{color:#a9552b}
+
+/* XP uses one yellow surface and dark ink; orange is reserved for the selected club. */
+:root{--xp-yellow:#ffcf57;--xp-ink:#5d3d0b;--selected-orange:#bf5a2c}
+.xp-wallet{background:var(--xp-yellow);border-color:#d6a940;box-shadow:0 8px 22px rgba(153,92,37,.17)}.wallet-spark{background:rgba(93,61,11,.1);color:var(--xp-ink)}.wallet-label,.wallet-value,.wallet-value span,.wallet-arrow{color:var(--xp-ink)}
+.xp-inline,.price-badge,.selection-info .selection-price,.xp-cta-price{background:var(--xp-yellow);color:var(--xp-ink);border-color:#d7aa3f}
+.xp-inline{display:inline-block;border-radius:5px;padding:2px 5px;font-weight:800;letter-spacing:0}.price-badge{border:1px solid #d7aa3f;box-shadow:0 4px 10px rgba(93,61,11,.2)}.selection-info .selection-price{box-shadow:0 2px 0 #c49a36}.card-bottom .xp-inline{padding:2px 4px;font-size:9px}
+.meter-track{background:#cfdbba}.meter-track span{background:var(--xp-yellow)}.meter-label .xp-inline{font-size:9px;line-height:1.1}.reward-title .xp-inline{font-size:inherit;padding:2px 6px}
+.claim-receipt{background:#fff8e7;border-color:#e6cf8d}.claim-receipt span{background:var(--xp-yellow);border-radius:7px;padding:6px 3px;color:var(--xp-ink)}.claim-receipt strong{color:var(--xp-ink)}.claim-announcement{background:var(--xp-yellow);color:var(--xp-ink);border-radius:7px;padding:5px 8px}.claim-dialog.revealed .claim-announcement{color:var(--xp-ink)}.xp-cta-price{border-radius:6px;padding:5px 6px;white-space:nowrap;font-size:11px;line-height:1}
+.club-card.selected{border-color:var(--selected-orange);box-shadow:0 8px 25px rgba(191,90,44,.18)}.selected .card-check{background:var(--selected-orange);border-color:var(--selected-orange);color:#fff}.club-card.selected:disabled:hover{box-shadow:0 8px 25px rgba(191,90,44,.18)}.club-card:focus-visible{outline:3px solid #8f3e1e;outline-offset:4px}
+@media(max-width:700px){.claim-actions{flex-direction:column-reverse}.claim-actions button{width:100%}.claim-final{min-height:44px}}
+.claim-cart-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:-5px 0 12px}.cart-choice{min-height:38px;border:1px solid #dbe5d5;background:#f2f5ec;color:#315a3a;border-radius:9px;padding:6px 7px;font-size:11px;font-weight:800;line-height:1.1}.cart-choice:hover{border-color:var(--selected-orange);background:#faecdf}.cart-choice.selected{border:2px solid var(--selected-orange);background:#fae6d9;color:#923e1b}.cart-choice:focus-visible{outline:3px solid #8f3e1e;outline-offset:2px}
+.club-card.available .card-bottom{background:var(--selected-orange);color:#fff;border:0;border-radius:7px;padding:9px 10px;margin-top:12px;font-size:10px;letter-spacing:1px}.club-card.available:hover .card-bottom{background:#a94a22}.club-card.available .card-arrow{color:#fff}
+.claim-announcement:empty{background:transparent;padding:0;min-height:0;margin-top:0}.practice-result{background:var(--xp-yellow);color:var(--xp-ink);border-radius:6px;padding:5px 7px}
+:root{--xp-yellow-text:#855700}
+.xp-inline,.reward-title .xp-inline,.card-bottom .xp-inline{display:inline;background:transparent;border:0;border-radius:0;box-shadow:none;color:var(--xp-yellow-text);padding:0;letter-spacing:inherit}
+.claim-receipt span{background:transparent;padding:2px 3px;color:var(--xp-yellow-text)}.claim-receipt strong{color:var(--xp-yellow-text)}.claim-announcement,.claim-dialog.revealed .claim-announcement,.practice-result{background:transparent;color:var(--xp-yellow-text);padding:0;border-radius:0}
+
+/* Keep labels and numbers readable across the shop, including narrow screens. */
+.side-label,.breadcrumb,.season-tag,.eyebrow,.eyebrow.light,.wallet-label,.reward-kicker,.section-index,.selection-note,.selection-caption,.claim-step,.claim-type{font-size:13px;letter-spacing:.8px}
+.equipped-sub,.side-bottom,.hero p,.section-heading p,.card-kicker,.card-tag,.card-desc,.stat-row,.stat-number,.card-bottom,.selection-info>span:last-child,.claim-intro,.claim-details>span:last-child,.claim-stat span,.claim-announcement,.collection-entry small,.collection-equipped{font-size:13px;line-height:1.35}
+.side-play,.nav-item,.claim-button,.claim-actions button,.back-to-shop{font-size:15px}
+.meter-label,.meter-label strong,.meter-label .xp-inline{font-size:13px;letter-spacing:0}
+.wallet-value span{font-size:15px}.price-badge{font-size:15px;padding:8px 11px}
+.card-tag{padding:5px 8px}.card-row{flex-wrap:wrap;row-gap:5px}.card-desc{min-height:35px}
+.stat-row{grid-template-columns:70px minmax(0,1fr) 25px;gap:7px;margin:8px 0}.stat-number{font-weight:800}
+.card-bottom .xp-inline{font-size:inherit}.club-card.available .card-bottom{font-size:13px;letter-spacing:.4px}
+.selection-info strong{font-size:19px}.selection-info .selection-price{font-size:16px;padding:9px 12px}.xp-cta-price{font-size:14px;padding:5px 7px}
+.cart-choice{font-size:13px;min-height:44px}.claim-stat strong{font-size:23px}
+.claim-receipt span{font-size:13px;letter-spacing:0;line-height:1.2}.claim-receipt strong{font-size:17px;line-height:1.15}
+.practice-topline,.practice-intro,.power-label,.practice-result,.toast{font-size:13px}
+@media(max-width:700px){.hero p{font-size:14px}.side-nav .nav-item{font-size:13px;min-height:42px;height:auto;padding:7px 5px}.side-nav .nav-item .nav-icon{display:none}.selection-info{align-items:center}.claim-actions button{font-size:15px}}
+@media(max-width:420px){.stat-row{grid-template-columns:68px minmax(0,1fr) 25px;gap:5px}.card-body{padding:14px}.club-card{grid-template-columns:34% minmax(0,1fr)}.club-art svg{width:150px}.claim-receipt{gap:3px;padding:10px 4px}.claim-receipt span{font-size:13px}.claim-receipt strong{font-size:15px}.claim-dialog{padding:18px}.claim-actions button{padding:12px 10px}}
+
+/* Preserve the purchase summary's hierarchy at narrow widths. */
+@media(max-width:420px){
+  .claim-receipt{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:9px}
+  .claim-receipt span{min-width:0;text-align:left;padding:7px 8px}
+  .claim-receipt span:first-child{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;background:#fff0b5;border-radius:8px}
+  .claim-receipt span:first-child strong{font-size:21px;margin-top:0}
+  .claim-receipt strong{font-size:16px;overflow-wrap:anywhere}
+  .side-nav .nav-item{min-height:44px}
+}
+.club-card.locked{opacity:1}
+
+/* Golf balls share the shop's yellow XP, orange selection, and readable card scale. */
+.equipped-ball{display:flex;align-items:center;gap:9px;margin:10px 0 15px;color:#f6dfb6;font-size:14px;font-weight:800}
+.equipped-ball-dot,.cart-ball-dot{display:inline-block;flex:none;width:16px;height:16px;border-radius:50%;background:var(--equipped-ball-color,#fff);border:2px solid rgba(255,255,255,.7);box-shadow:inset -2px -2px 2px rgba(47,63,45,.25),0 2px 5px rgba(0,0,0,.13)}
+.ball-section{margin-top:54px}
+.ball-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;margin-top:23px}
+.ball-card{display:block;overflow:hidden;text-align:left;border:2px solid #dfe6d5;background:#fffdf7;border-radius:16px;padding:0;color:#214d34;box-shadow:0 4px 16px rgba(34,66,43,.04);transition:transform .2s,box-shadow .2s,border-color .2s}
+.ball-card:hover:not(:disabled){transform:translateY(-4px);box-shadow:0 12px 28px rgba(34,66,43,.13)}
+.ball-card.selected{border-color:var(--selected-orange);box-shadow:0 8px 25px rgba(191,90,44,.18)}
+.ball-card:focus-visible{outline:3px solid #8f3e1e;outline-offset:4px}
+.ball-card:disabled{cursor:default}
+.ball-art{position:relative;height:178px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 48% 55%,#fff9e4 0,#f7e4bd 53%,#eacfae 100%)}
+.ball-art:after{content:'';position:absolute;width:215px;height:54px;bottom:-39px;border:3px solid rgba(164,104,51,.19);border-radius:50%}
+.ball-art .ball-illustration{position:relative;z-index:1;width:168px;height:168px;filter:drop-shadow(0 12px 9px rgba(78,60,42,.19))}
+.ball-art .price-badge{z-index:3}
+.ball-art .card-check{z-index:3}
+.ball-card-body{padding:19px 20px 17px}
+.ball-card-body h3{font:800 25px/1.1 Outfit,sans-serif;letter-spacing:-.7px;margin:10px 0 12px;color:#234f37}
+.ball-card .stat-row{font-size:13px}
+.ball-card .card-bottom{margin-top:15px;font-size:13px}
+.ball-card.available .card-bottom{background:var(--selected-orange);color:#fff;border:0;border-radius:7px;padding:9px 10px;letter-spacing:.4px}
+.ball-card.available .card-arrow{color:#fff}
+.ball-card .xp-inline{color:var(--xp-yellow-text);background:none;padding:0}
+.ball-card.available .card-bottom:hover{background:#a94a22}
+.ball-section .section-heading p .xp-inline{color:var(--xp-yellow-text);font-weight:800;background:none;padding:0}
+.collection-group-title{padding:8px 2px 0;font-size:13px;font-weight:900;letter-spacing:1.1px;color:#955328}
+.collection-ball-emblem{color:var(--collection-ball);text-shadow:0 1px 2px #715f42}
+
+/* One cart accepts either upgrade or a pair. The highest XP target unlocks both. */
+.claim-dialog{width:min(640px,100%)}
+.claim-showcase{height:175px;background:radial-gradient(circle at 50% 58%,#fff2d3 0,#edcfaa 62%,#dfa976 100%)}
+.cart-art-pair{display:flex;align-items:center;justify-content:center;gap:0;min-height:160px}
+.cart-art-club svg{width:220px;height:160px;filter:drop-shadow(0 10px 9px rgba(77,51,31,.24))}
+.cart-art-ball{margin-left:-24px;z-index:3}
+.cart-art-ball .ball-illustration{width:142px;height:142px;filter:drop-shadow(0 10px 7px rgba(77,51,31,.25))}
+.cart-art-ball:only-child{margin-left:0}
+.cart-items{display:grid;gap:12px;margin:16px 0}
+.cart-item{text-align:left}
+.cart-item-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 6px;font-size:14px;font-weight:900;letter-spacing:.6px;color:#305943}
+.cart-item-heading strong{color:var(--xp-yellow-text);font:800 17px Outfit,sans-serif;white-space:nowrap}
+.claim-cart-choices,.claim-ball-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:0}
+.cart-choice{min-width:0;min-height:48px;font-size:13px;line-height:1.15;padding:7px 5px}
+.cart-choice.selected{border-color:var(--selected-orange);background:#fae6d9;color:#923e1b}
+.cart-none{color:#697e66;background:#f3f1e9}
+.cart-ball-choice{display:flex;align-items:center;justify-content:center;gap:5px}
+.cart-ball-dot{width:13px;height:13px;background:var(--cart-ball);border-color:#fff}
+.cart-ball-choice small{display:block;margin-top:2px;font-size:13px;font-weight:900;color:#a04c28}
+.cart-unavailable{grid-column:1/-1;padding:10px 12px;background:#f3f1e9;border-radius:8px;font-size:13px;font-weight:700;color:#637861}
+.claim-receipt{margin:4px 0 15px}
+.claim-receipt span:first-child{background:#fff0b5;border-radius:8px}
+.claim-final:disabled{background:#a8b5a1;box-shadow:none;cursor:not-allowed}
+.claim-dialog.celebrating .cart-items,.claim-dialog.revealed .cart-items{display:none}
+.claim-dialog.celebrating .cart-art-ball,.claim-dialog.revealed .cart-art-ball{animation:claim-ball-pop 1.1s ease-out both}
+@keyframes claim-ball-pop{0%{transform:scale(.7) translateY(18px)}60%{transform:scale(1.15) translateY(-8px)}100%{transform:scale(1)}}
+@media(max-width:900px){.ball-grid{gap:10px}.ball-card-body{padding:15px}.ball-art{height:145px}.ball-art .ball-illustration{width:140px;height:140px}}
+@media(max-width:700px){.ball-section{margin-top:36px}.ball-grid{grid-template-columns:1fr}.ball-card{display:grid;grid-template-columns:36% minmax(0,1fr)}.ball-art{height:100%;min-height:210px}.ball-art .ball-illustration{width:min(155px,95%);height:auto}.ball-card-body{padding:16px}.ball-card-body h3{font-size:23px}.claim-dialog{max-height:calc(100dvh - 22px);padding:18px}.claim-showcase{height:145px}.cart-art-pair{min-height:140px}.cart-art-club svg{width:175px;height:135px}.cart-art-ball .ball-illustration{width:115px;height:115px}.claim-cart-choices,.claim-ball-choices{grid-template-columns:repeat(2,minmax(0,1fr))}.cart-item-heading{font-size:13px}.cart-choice{font-size:13px}.cart-items{gap:10px}.claim-receipt{margin-bottom:12px}}
+@media(max-width:420px){.ball-card{grid-template-columns:34% minmax(0,1fr)}.ball-art{min-height:210px}.ball-card-body{padding:13px}.ball-card-body h3{font-size:21px}.ball-card .stat-row{grid-template-columns:62px minmax(0,1fr) 25px}.cart-art-ball{margin-left:-18px}.cart-art-club svg{width:155px}.cart-art-ball .ball-illustration{width:105px;height:105px}}
+@media(prefers-reduced-motion:reduce){.claim-dialog.celebrating .cart-art-ball,.claim-dialog.revealed .cart-art-ball{animation:none!important}}
+@media(max-width:420px){
+  .claim-final{gap:6px}
+  .claim-final #claim-confirm-text{font-size:15px;line-height:1.15;text-align:left}
+  .claim-final #claim-confirm-price{font-size:13px;line-height:1.1;white-space:normal;text-align:right}
+  .claim-final>span:last-child{display:none}
+}
+
+/* The first six hand-designed drops lead into the generated gear colors. */
+.club-art.wildfire{background:linear-gradient(135deg,#fbe7cc,#efa575)}
+.club-art.starlift{background:linear-gradient(135deg,#e6ecff,#aabcf0)}
+.club-art.ripple{background:linear-gradient(135deg,#d6f2ed,#8bd0ce)}
+.club-art.thunderhead{background:linear-gradient(135deg,#e7daf8,#ad8bd6)}
+.club-art.sunforge{background:linear-gradient(135deg,#fff1c7,#efc776)}
+.club-art.mirage{background:linear-gradient(135deg,#f9e0ec,#e5a6c8)}
+.club-art.supernova{background:linear-gradient(135deg,#ffe4c7,#eb9b84)}
+.club-art.skycrown{background:linear-gradient(135deg,#dcefff,#9ec9ee)}
+.club-art.kaleido{background:linear-gradient(135deg,#f0e3fb,#b9b0e3)}
+.club-art.generated{background:radial-gradient(circle at 44% 30%,#fff8e7 0%,var(--club-color) 45%,var(--club-grip) 125%)}
+.ball-art.generated{background:radial-gradient(circle at 42% 28%,#fff9e9 0%,var(--ball-color) 47%,var(--ball-accent) 130%)}
+
+/* Standalone ratings can keep growing through tier 1,000. */
+.stat-row,.ball-card .stat-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0;padding:4px 0;border-bottom:1px solid #e9eee4;font-size:13px}
+.stat-row .stat-number{font:800 21px/1 Outfit,sans-serif;color:#365f42;text-align:right;min-width:24px}
+.ball-card .stat-row .stat-number{color:#365f42}
+@media(max-width:420px){.stat-row,.ball-card .stat-row{gap:6px}}
+@media(max-width:360px){.meter-label{flex-wrap:wrap;white-space:normal}.meter-label strong{width:100%;text-align:left}}
+.wallet-value.large-total{font-size:33px}
+.wallet-value.very-large-total{font-size:28px}
+@media(max-width:700px){.wallet-value.large-total{font-size:30px}.wallet-value.very-large-total{font-size:25px}}
+@media(max-width:420px){.wallet-value.large-total{font-size:27px}.wallet-value.very-large-total{font-size:23px}}
+@media(max-width:420px){
+  .club-art .price-badge,.ball-art .price-badge{left:5px;right:5px;top:8px;padding:6px 3px;font-size:13px;letter-spacing:0;text-align:center;white-space:nowrap}
+  .club-art .card-check,.ball-art .card-check{top:auto;right:8px;bottom:9px}
+}

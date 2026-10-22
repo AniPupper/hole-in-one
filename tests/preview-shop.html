@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hole in One · Shop QA</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #e7ead6; color: #15392d; font: 600 18px/1.4 system-ui, sans-serif; }
+  main { width: min(90vw, 460px); padding: 32px; border-radius: 24px; background: #fffaf0; box-shadow: 0 18px 45px #17382922; }
+  h1 { margin: 0 0 12px; font-size: 30px; }
+  p { font-weight: 400; }
+  label { display: block; margin: 24px 0 8px; }
+  input { box-sizing: border-box; width: 100%; padding: 12px; border: 2px solid #76967c; border-radius: 10px; font: inherit; }
+  button { width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px; background: #b45631; color: white; font: 800 18px system-ui, sans-serif; cursor: pointer; }
+  small { display: block; margin-top: 18px; font-size: 13px; font-weight: 400; }
+</style>
+<main>
+  <h1>Shop visual QA</h1>
+  <p>Preview the next club and ball drop at a chosen tier. Use only a disposable local HTTP test origin.</p>
+  <form id="preview-form">
+    <label for="tier">Gear tier (1–1000)</label>
+    <input id="tier" type="number" min="1" max="1000" value="7" required>
+    <button type="submit">Open test shop ↗</button>
+  </form>
+  <small>This seeds test XP and prior unlocks on this browser origin so the selected tier is available. Do not use it with your saved file:// game.</small>
+</main>
+<script src="../gear-progression.js"></script>
+<script>
+  document.getElementById('preview-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const tier = Number(document.getElementById('tier').value);
+    if (!Number.isInteger(tier) || tier < 1 || tier > 1000) return;
+    const clubs = [1000, 2600, 5200, 9000, 15000, 24000];
+    const balls = [900, 2400, 5000, 8500, 14500, 23000];
+    const threshold = tier <= 6 ? Math.max(clubs[tier - 1], balls[tier - 1])
+      : Math.max(GearProgression.threshold('club', tier), GearProgression.threshold('ball', tier));
+    const key = 'hole-in-one-progress-v1';
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(key)); } catch (_) {}
+    const progress = {
+      xp: threshold, holeCount: Math.max(4, Number(saved?.holeCount) || 4),
+      equipped: saved?.equipped || 'rookie', equippedBall: saved?.equippedBall || 'classic',
+      owned: saved?.owned || ['rookie'], ownedBalls: saved?.ownedBalls || ['classic'],
+      claimed: Array.from({ length: tier - 1 }, (_, index) => index),
+      claimedBallTiers: Array.from({ length: tier - 1 }, (_, index) => index)
+    };
+    localStorage.setItem(key, JSON.stringify(progress));
+    location.href = '../index.html';
+  });
+</script>
+</html>

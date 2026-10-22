@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hole in One · Course QA</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #e7ead6; color: #15392d; font: 600 18px/1.4 system-ui, sans-serif; }
+  main { width: min(90vw, 460px); padding: 32px; border-radius: 24px; background: #fffaf0; box-shadow: 0 18px 45px #17382922; }
+  h1 { margin: 0 0 12px; font-size: 30px; }
+  p { font-weight: 400; }
+  label { display: block; margin: 24px 0 8px; }
+  input { box-sizing: border-box; width: 100%; padding: 12px; border: 2px solid #76967c; border-radius: 10px; font: inherit; }
+  button { width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px; background: #b45631; color: white; font: 800 18px system-ui, sans-serif; cursor: pointer; }
+  small { display: block; margin-top: 18px; font-size: 13px; font-weight: 400; }
+</style>
+<main>
+  <h1>Course visual QA</h1>
+  <p>Open a specific course for a rendering or interaction check. Use only a disposable local HTTP test origin.</p>
+  <form id="preview-form">
+    <label for="level">Course number (1–501, including Encore)</label>
+    <input id="level" type="number" min="1" max="501" value="1" required>
+    <button type="submit">Open test course ↗</button>
+  </form>
+  <button id="reset-tutorial" type="button">Reset tutorial and open game ↗</button>
+  <small>These controls change only the course number or tutorial seen flag on this browser origin. Lifetime XP and equipped gear are untouched.</small>
+</main>
+<script>
+  document.getElementById('preview-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const level = Number(document.getElementById('level').value);
+    if (!Number.isInteger(level) || level < 1 || level > 501) return;
+    localStorage.setItem('hole-in-one-course-v1', JSON.stringify({ level, completed: false }));
+    location.href = '../game.html';
+  });
+  document.getElementById('reset-tutorial').addEventListener('click', () => {
+    localStorage.removeItem('hole-in-one-tutorial-seen-v1');
+    location.href = '../game.html';
+  });
+</script>
+</html>

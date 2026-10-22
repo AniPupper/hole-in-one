@@ -10,7 +10,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./game.css" />
+  <link rel="stylesheet" href="./tutorial.css" />
+  <script src="./gear-progression.js" defer></script>
+  <script src="./ball-upgrades.js" defer></script>
+  <script src="./course-blueprints.js" defer></script>
   <script src="./game.js" defer></script>
+  <script src="./tutorial.js" defer></script>
 </head>
 <body>
   <main class="game-shell">
@@ -34,11 +39,11 @@
       <div class="hole-number">HOLE <strong id="hole-number">01</strong><span class="hole-spark">✳</span></div>
       <h1 id="course-name">The First Green</h1>
       <p id="course-subtitle">One little green. One perfectly impossible shot.</p>
-      <div class="hole-progress"><span id="hole-progress-text">01 / 40 TO LEGEND</span><div class="hole-progress-track"><i id="hole-progress-fill"></i></div></div>
+      <div class="hole-progress"><span id="hole-progress-text">CHAPTER 01 · HOLE 01</span><div class="hole-progress-track"><i id="hole-progress-fill"></i></div></div>
     </section>
 
     <aside class="game-stats" aria-label="Your equipment and conditions">
-      <div class="stat-card club-card"><div class="stat-icon">✦</div><div><span class="stat-kicker">IN YOUR BAG</span><strong id="club-name">The Rookie</strong></div><span class="stat-arrow">↗</span></div>
+      <div class="stat-card club-card"><div class="stat-icon">✦</div><div><span class="stat-kicker">IN YOUR BAG</span><strong id="club-name">The Rookie</strong><span class="ball-name" id="ball-name">Classic ball</span></div><span class="stat-arrow">↗</span></div>
       <div class="stat-card weather-card"><div class="stat-icon weather-icon" id="weather-icon">☀</div><div><span class="stat-kicker">COURSE CONDITIONS</span><strong id="weather-name">Calm & sunny</strong></div></div>
       <div class="streak-card"><span class="streak-icon">✳</span><div><strong id="streak-count">4</strong><span>HOLES IN ONE</span></div></div>
     </aside>
@@ -52,7 +57,10 @@
       <div class="power-track"><div class="power-fill" id="power-fill"></div><span class="power-tick one"></span><span class="power-tick two"></span><span class="power-tick three"></span></div>
       <div class="shot-bottom"><span>CLICK / TOUCH + PULL TO AIM</span><span>RELEASE TO SWING <b>↗</b></span></div>
     </div>
-    <button class="keyboard-shot" id="keyboard-shot" type="button">SWING NOW <span>↗</span></button>
+    <div class="course-utility" aria-label="Course controls">
+      <button class="tutorial-replay" id="tutorial-open" type="button" aria-haspopup="dialog" aria-controls="tutorial-overlay"><span aria-hidden="true">?</span> HOW TO PLAY</button>
+      <button class="keyboard-shot" id="keyboard-shot" type="button">SWING NOW <span aria-hidden="true">↗</span></button>
+    </div>
 
     <div class="celebration" id="celebration" hidden>
       <div class="celebration-scrim"></div>
@@ -69,5 +77,24 @@
     </div>
     <div class="confetti" id="confetti" aria-hidden="true"></div>
   </main>
+  <div class="tutorial-overlay" id="tutorial-overlay" hidden>
+    <section class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-lede">
+      <div class="tutorial-scroll">
+        <div class="tutorial-topline"><span>WELCOME TO THE STREAK</span><button class="tutorial-close" id="tutorial-close" type="button" aria-label="Close tutorial">×</button></div>
+        <div class="tutorial-hero">
+          <span class="tutorial-spark" aria-hidden="true">✳</span>
+          <h2 id="tutorial-title" tabindex="-1">Every swing <em>wins.</em></h2>
+          <p id="tutorial-lede">Your first shot always finds the cup. The fun is watching how.</p>
+        </div>
+        <div class="tutorial-steps">
+          <article class="tutorial-step"><span class="tutorial-step-number">01</span><span class="tutorial-step-icon" aria-hidden="true">↗</span><h3>Pull back. Aim.</h3><p>Click or touch the course. Hold, pull back, point your club, then release.</p></article>
+          <article class="tutorial-step"><span class="tutorial-step-number">02</span><span class="tutorial-step-icon" aria-hidden="true">〰</span><h3>Watch the chaos.</h3><p>Your ball starts on your line. Wind, walls, and wild gadgets guide it home.</p></article>
+          <article class="tutorial-step"><span class="tutorial-step-number">03</span><span class="tutorial-step-icon" aria-hidden="true">✦</span><h3>Win. Upgrade.</h3><p>Earn lifetime XP. In the Pro Shop, tap <strong>Add to cart</strong>, then <strong>Purchase</strong> a club or ball.</p></article>
+        </div>
+        <div class="tutorial-reassurance"><strong>XP ONLY GOES UP</strong><span>Your gear has unlock targets. Your total stays yours.</span></div>
+      </div>
+      <div class="tutorial-actions"><button class="tutorial-skip" id="tutorial-skip" type="button">Skip for now</button><button class="tutorial-start" id="tutorial-start" type="button">PLAY A HOLE <span aria-hidden="true">↗</span></button></div>
+    </section>
+  </div>
 </body>
 </html>
