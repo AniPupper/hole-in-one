@@ -100,13 +100,13 @@ function checkShop() {
   shop.load('script.js');
   const catalog = checkCatalog(shop);
   assert.equal(shop.run('progress.xp'), 0, 'new players should start with no XP');
-  shop.run('progress.xp = 1240; saveProgress()');
+  shop.run('progress.xp = 2000; saveProgress()');
   shop.run("openClaimCart('meteor', 'sunburst')");
-  assert.equal(shop.run("document.getElementById('claim-needed').textContent"), '1,000 XP');
+  assert.equal(shop.run("document.getElementById('claim-needed').textContent"), '1,900 XP');
   assert.equal(shop.run("document.getElementById('claim-confirm-text').textContent"), 'Purchase both');
   shop.elements.get('claim-confirm').handlers.click();
   let saved = JSON.parse(store.get(progressKey));
-  assert.equal(saved.xp, 1240, 'combined purchase deducted lifetime XP');
+  assert.equal(saved.xp, 100, 'combined purchase must spend both item prices');
   assert.equal(saved.equipped, 'meteor');
   assert.equal(saved.equippedBall, 'sunburst');
   assert.deepEqual([...saved.claimed], [0]);
@@ -121,48 +121,48 @@ function checkShop() {
   assert.equal(reloaded.run('claimSelectedId'), null);
   assert.equal(reloaded.run('cartBallId'), null);
   reloaded.elements.get('claim-confirm').handlers.click();
-  assert.equal(JSON.parse(store.get(progressKey)).xp, 1240);
+  assert.equal(JSON.parse(store.get(progressKey)).xp, 100);
 
   // Simulate earning enough XP, then claim the next club and ball together.
-  reloaded.run('progress.xp = 2600; saveProgress()');
+  reloaded.run('progress.xp = 5000; saveProgress()');
   reloaded.run("openClaimCart('orbit', 'ember')");
-  assert.equal(reloaded.run("document.getElementById('claim-needed').textContent"), '2,600 XP');
+  assert.equal(reloaded.run("document.getElementById('claim-needed').textContent"), '5,000 XP');
   reloaded.elements.get('claim-confirm').handlers.click();
   saved = JSON.parse(store.get(progressKey));
-  assert.equal(saved.xp, 2600, 'second purchase deducted lifetime XP');
+  assert.equal(saved.xp, 0, 'second purchase must spend both item prices');
   assert.equal(saved.equipped, 'orbit');
   assert.equal(saved.equippedBall, 'ember');
   assert.deepEqual([...saved.claimed], [0, 1]);
   assert.deepEqual([...saved.claimedBallTiers], [0, 1]);
 
   // Generated choices must remain stable across reloads and use the same
-  // lifetime-XP cart rule as the six curated drops.
+  // spendable-XP cart rule as the six curated drops.
   const tierSevenClub = catalog.clubTiers[6].choices[0];
   const tierSevenBall = catalog.ballTiers[6].choices[0];
-  reloaded.run(`progress.xp = Math.max(tiers[6].threshold, ballTiers[6].threshold);
+  reloaded.run(`progress.xp = tiers[6].threshold + ballTiers[6].threshold;
     progress.claimed = [0,1,2,3,4,5]; progress.claimedBallTiers = [0,1,2,3,4,5]; saveProgress()`);
   const tierSeven = host(); tierSeven.load('script.js');
   tierSeven.run(`openClaimCart('${tierSevenClub}', '${tierSevenBall}')`);
   tierSeven.elements.get('claim-confirm').handlers.click();
   saved = JSON.parse(store.get(progressKey));
-  assert.equal(saved.xp, catalog.clubTiers[6].threshold);
+  assert.equal(saved.xp, 0);
   assert.equal(saved.equipped, tierSevenClub);
   assert.equal(saved.equippedBall, tierSevenBall);
   assert.ok(saved.claimed.includes(6) && saved.claimedBallTiers.includes(6));
 
-  // The final milestone is reachable, does not consume XP, and cleanly caps
+  // The final milestone is reachable, consumes XP, and cleanly caps
   // both collections after one combined purchase.
   const finalIndex = catalog.clubTiers.length - 1;
   const finalClub = catalog.clubTiers[finalIndex].choices[2];
   const finalBall = catalog.ballTiers[finalIndex].choices[2];
-  tierSeven.run(`progress.xp = Math.max(tiers[999].threshold, ballTiers[999].threshold);
+  tierSeven.run(`progress.xp = tiers[999].threshold + ballTiers[999].threshold;
     progress.claimed = Array.from({length:999}, (_, i) => i);
     progress.claimedBallTiers = Array.from({length:999}, (_, i) => i); saveProgress()`);
   const finalShop = host(); finalShop.load('script.js');
   finalShop.run(`openClaimCart('${finalClub}', '${finalBall}')`);
   finalShop.elements.get('claim-confirm').handlers.click();
   saved = JSON.parse(store.get(progressKey));
-  assert.equal(saved.xp, catalog.clubTiers[999].threshold);
+  assert.equal(saved.xp, 0);
   assert.equal(saved.equipped, finalClub);
   assert.equal(saved.equippedBall, finalBall);
   assert.equal(saved.claimed.length, 1000);
@@ -191,7 +191,7 @@ function checkStaleShopSave() {
   isolated.set(progressKey, JSON.stringify(newer));
   stale.elements.get('claim-confirm').handlers.click();
   const saved = JSON.parse(isolated.get(progressKey));
-  assert.equal(saved.xp, 5200, 'stale shop tab erased newly earned XP');
+  assert.equal(saved.xp, 2600, 'stale shop tab failed to deduct the club price from current XP');
   assert.equal(saved.holeCount, 9, 'stale shop tab erased newer shot count');
   assert.equal(saved.equipped, 'orbit', 'purchased club was not equipped');
   assert.equal(saved.equippedBall, 'ember', 'club-only purchase overwrote newer ball equipment');
@@ -211,7 +211,7 @@ function checkStaleShopSave() {
   inverseStore.set(progressKey, JSON.stringify(newerClub));
   staleBallCart.elements.get('claim-confirm').handlers.click();
   const savedBallCart = JSON.parse(inverseStore.get(progressKey));
-  assert.equal(savedBallCart.xp, 5200);
+  assert.equal(savedBallCart.xp, 2800);
   assert.equal(savedBallCart.holeCount, 10);
   assert.equal(savedBallCart.equippedBall, 'ember', 'purchased ball was not equipped');
   assert.equal(savedBallCart.equipped, 'orbit', 'ball-only purchase overwrote newer club equipment');
@@ -247,14 +247,14 @@ function checkCupRegressions() {
     courseState={level:1,completed:false};setLayout(1);phase='ready';ball={...START};
     startShot(50,{x:160,y:0});
     ball={x:CUP.x-1.5,z:CUP.z+.3,y:0};
-    ball.y=layout.heightAt(ball.x,ball.z)+BALL_RADIUS;
+    ball.y=courseSurfaceAt(ball.x,ball.z,ball.y)+BALL_RADIUS;
     shot.velocity={x:0,y:0,z:2};shot.spinSign=0;shot.elapsed=0;
     const v=shot.velocity, dt=1/120, toCup=cupDirection(), dist=toCup.distance;
     const bowl=Math.max(0,1-dist/3.3), near=1/(1+Math.pow(dist/1.05,4));
     const slopeForce=bowl*(.4+2.7*bowl),drag=(.22+2.3*near)*shot.ballProfile.dragMultiplier;
-    const ground=layout.heightAt(ball.x,ball.z);
-    const ax=toCup.x*slopeForce-v.x*drag-(layout.heightAt(ball.x+.03,ball.z)-ground)/.03*3.8;
-    const az=toCup.z*slopeForce-v.z*drag-(layout.heightAt(ball.x,ball.z+.03)-ground)/.03*3.8;
+    const ground=courseSurfaceAt(ball.x,ball.z,ball.y);
+    const ax=toCup.x*slopeForce-v.x*drag-(courseSurfaceAt(ball.x+.03,ball.z,ball.y)-ground)/.03*3.8;
+    const az=toCup.z*slopeForce-v.z*drag-(courseSurfaceAt(ball.x,ball.z+.03,ball.y)-ground)/.03*3.8;
     const expected=Math.hypot(v.x+ax*dt,v.z+az*dt);
     const preAngle=Math.atan2(v.z+az*dt,v.x+ax*dt);
     const target=Math.atan2(toCup.z,toCup.x);

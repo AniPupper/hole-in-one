@@ -434,17 +434,46 @@
     }
   }
   function modelWaterSurface(time){
-    const count=56,span=3.2;
-    for(let i=0;i<count;i++){
-      const z0=-span+i*2*span/count,z1=-span+(i+1)*2*span/count,c0=riverCenter(z0),c1=riverCenter(z1);
-      const y0=-.108+.006*Math.sin(z0*4.2-time*2),y1=-.108+.006*Math.sin(z1*4.2-time*2);
-      quad(V(c0-.575,y0,z0),V(c1-.575,y1,z1),V(c1+.575,y1,z1),V(c0+.575,y0,z0),
-        i%7<2?'#49aec0':'#319caf',.62);
+    const count=64,bands=8,span=3.2,width=.575;
+    const height=(z,u)=>-.108
+      +.008*Math.sin(z*5.2-time*2.8+u*2.4)*(1-.3*Math.abs(u))
+      +.0035*Math.sin(z*10.4+time*1.7-u*5.2);
+    const point=(z,u,lift=0)=>V(riverCenter(z)+u*width,height(z,u)+lift,z);
+    // Broad moving color bands and real wave normals replace a flat strip.
+    for(let i=0;i<count;i++)for(let j=0;j<bands;j++){
+      const z0=-span+i*2*span/count,z1=-span+(i+1)*2*span/count;
+      const u0=-1+j*2/bands,u1=-1+(j+1)*2/bands;
+      const midZ=(z0+z1)/2,midU=(u0+u1)/2;
+      const current=Math.sin(midZ*2.3-time*1.9+midU*2.7);
+      const flash=Math.sin(midZ*5.1-time*3.2-midU*4.4);
+      const tone=Math.abs(midU)>.78?'#318b9e':current>.55&&flash>.2?'#80cbd0':current>-.2?'#48aabb':'#2b91a8';
+      quad(point(z0,u0),point(z1,u0),point(z1,u1),point(z0,u1),tone,.77);
     }
-    for(let i=0;i<17;i++){
-      const z=-3.1+((i*.41+time*.36)%6.2),c=riverCenter(z),offset=(i%3-1)*.24;
-      tube([V(c+offset-.13,-.091,z-.10),V(c+offset,-.088,z),V(c+offset+.10,-.092,z+.13)],
-        .008,i%3?'#b7e8df':'#e6fbef',.55,5);
+    // Long current veins curl with the meander and slip beneath the bridge.
+    for(let lane=0;lane<5;lane++)for(let run=0;run<3;run++){
+      const speed=.42+lane*.035;
+      const start=-3.35+((run*2.16+lane*.44+time*speed)%7.2);
+      const points=[];
+      for(let k=0;k<11;k++){
+        const z=start+k*.07;
+        if(z<-3.15||z>3.15)continue;
+        const u=(lane-2)*.34+.05*Math.sin(z*4.8-time*1.4+lane);
+        points.push(point(z,u,.013));
+      }
+      if(points.length>1)tube(points,.0045,lane%2?'#a8dfe0':'#c7ece6',.78,5);
+    }
+    // Short broken crests and bank eddies make the flow feel less uniform.
+    for(let i=0;i<29;i++){
+      const z=-3.12+((i*.47+time*(.34+.035*(i%4)))%6.24);
+      const u=((i*7)%13-6)/9;
+      const curl=(i%2?1:-1)*.045;
+      const points=[point(z-.07,u-.095,.016),point(z,u+curl,.019),point(z+.07,u+.095,.014)];
+      tube(points,i%5===0?.006:.0035,i%5===0?'#e1f6e9':'#a9dbd9',.70,5);
+    }
+    for(const side of [-1,1])for(let i=0;i<13;i++){
+      const z=-3.02+((i*.51+time*.22)%6.04);
+      tube([point(z-.09,side*.96,.018),point(z,side*.91,.02),point(z+.09,side*.97,.017)],
+        .0038,'#d5e9dc',.5,5);
     }
   }
   function modelBridgeDemoBall(time){

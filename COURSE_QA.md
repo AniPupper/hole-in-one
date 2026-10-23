@@ -24,3 +24,10 @@ This is a source and deterministic VM audit of the production `game.js` course. 
 ## Isolated 3D gallery review
 
 `prototype-3d/gallery.js` is separate from production. Its pad outer half-axes, windmill tower and rotor span, bridge deck and rails, cup mouth, and backstop nominal dimensions closely match production. The designer aligned the gallery's pad lighting across the full contact disc, rail cap to 0.74, and bowl contour to radius 3.3, and documented its rotor phase as a sample to replace with each production feature's phase on integration. Gallery visuals were source-reviewed only.
+
+## Opt-in playable 3D trial — latest source/VM checks
+
+- `tests/three_d_contract.cjs` passes headless WebGL2 mesh/API checks on holes 1/2/4/5/6/20/100/250. Static and dynamic vertex uploads, moving props, the hinged backstop, mole, upgraded gear, and animated bridge water all produce finite triangle geometry and camera matrices. The test ran after the richer river animation was ported.
+- `tests/three_d_physics_contract.cjs` passes local river contact/current/dry exit and bridge ramp/deck checks on holes 5/20/100/250. The cup support drops 0.12 at center and a near-cup test shot sinks in 1.04 s. The center-to-±1.7 fairway height difference across holes 4/5/100/250 is at most 0.041 after the cross-slope fix.
+- The 100% launch speed and first 0.2 s travel are each 2.58× the 50% values. Thirty 100% shot traces across holes 1/4/5/10/100/250 and aims 0°/45°/90°/180°/270° all sink; the longest takes 18.37 s. This is a targeted post-patch check, not a full-catalog guarantee.
+- Remaining visual concern: hole 250, 270° aim, 100% power reaches about 12.3 world units from the centerline before recovery. The ball still sinks, but it can leave the visible course context. Browser confirmation of water and cup appearance is delegated to the parent agent because this subagent's local browser URL was policy-blocked.

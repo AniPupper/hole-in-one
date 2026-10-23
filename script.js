@@ -72,7 +72,7 @@ function loadProgress() {
   return window.BallUpgrades.normalize({ ...initialProgress, claimed: [], owned: ['rookie'] });
 }
 
-function saveProgress({ clubChanged = false, ballChanged = false } = {}) {
+function saveProgress({ clubChanged = false, ballChanged = false, xpChange = null, holesChange = 0 } = {}) {
   let latest = progress;
   try {
     if (localStorage.getItem(STORAGE_KEY) !== null) latest = loadProgress();
@@ -80,8 +80,8 @@ function saveProgress({ clubChanged = false, ballChanged = false } = {}) {
   progress = {
     ...latest,
     ...progress,
-    xp: Math.max(latest.xp, progress.xp),
-    holeCount: Math.max(latest.holeCount, progress.holeCount),
+    xp: Math.max(0, xpChange === null ? progress.xp : latest.xp + xpChange),
+    holeCount: holesChange ? latest.holeCount + holesChange : Math.max(latest.holeCount, progress.holeCount),
     equipped: clubChanged ? progress.equipped : latest.equipped,
     equippedBall: ballChanged ? progress.equippedBall : latest.equippedBall,
     claimed: [...new Set([...latest.claimed, ...progress.claimed])],
@@ -161,7 +161,7 @@ function render() {
   if (complete || unlocked) rewardTitle.textContent = complete ? 'More clubs are brewing.' : 'New clubs ready.';
   else rewardTitle.innerHTML = `<span class="xp-inline">${Math.max(0, tier.threshold - progress.xp).toLocaleString()} XP</span> to go.`;
   document.getElementById('meter-caption').textContent = `${progress.xp.toLocaleString()} / ${tier.threshold.toLocaleString()} XP`;
-  document.getElementById('meter-status').textContent = complete ? 'COMING SOON' : unlocked ? 'READY TO UNLOCK' : 'KEEP SWINGING';
+  document.getElementById('meter-status').textContent = complete ? 'COMING SOON' : unlocked ? 'READY TO BUY' : 'KEEP SWINGING';
   document.getElementById('meter-fill').style.width = `${Math.min(100, progress.xp / tier.threshold * 100)}%`;
   document.getElementById('section-index').textContent = `TIER ${String(tierIndex + 1).padStart(2, '0')} · ${tierLabel(tierIndex)}`;
   document.getElementById('club-heading').textContent = complete ? 'More clubs incoming.' : unlocked ? 'Pick your club.' : 'Coming up.';
@@ -204,7 +204,7 @@ function render() {
   else if (!ballTier.choices.includes(selectedBallId)) selectedBallId = ballTier.choices[0];
   document.getElementById('ball-section-index').textContent = ballsComplete ? 'NEXT BALL DROP' : `BALL DROP ${String(ballTierIndex + 1).padStart(2, '0')} · ${tierLabel(ballTierIndex)}`;
   document.getElementById('ball-heading').textContent = ballsComplete ? 'More balls incoming.' : ballsUnlocked ? 'Pick your ball.' : 'Next ball drop.';
-  document.getElementById('ball-section-description').innerHTML = ballsComplete ? 'The next drop is taking shape.' : ballsUnlocked ? 'One of three. Add it to your cart.' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> to unlock.`;
+  document.getElementById('ball-section-description').innerHTML = ballsComplete ? 'The next drop is taking shape.' : ballsUnlocked ? 'One of three. Add it to your cart.' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> to buy.`;
   const ballGrid = document.getElementById('ball-grid');
   ballGrid.innerHTML = ballTier.choices.map((id) => {
     const item = balls[id];
@@ -245,19 +245,25 @@ function burstConfetti(count = 70) {
 }
 
 function openClaimCart(clubId = null, ballId = null) {
+  progress = loadProgress();
   const clubTier = tiers[currentTierIndex()];
   const ballTier = ballTiers[currentBallTierIndex()];
   const canClub = !allClaimed() && progress.xp >= clubTier.threshold;
   const canBall = !allBallsClaimed() && progress.xp >= ballTier.threshold;
   claimSelectedId = canClub && clubTier.choices.includes(clubId) ? clubId : null;
   cartBallId = canBall && ballTier.choices.includes(ballId) ? ballId : null;
+  // A club and ball fit in the same two-click purchase when the balance covers both.
+  if (claimSelectedId && !cartBallId && canBall && progress.xp >= clubTier.threshold + ballTier.threshold)
+    cartBallId = ballTier.choices.includes(selectedBallId) ? selectedBallId : ballTier.choices[0];
+  else if (cartBallId && !claimSelectedId && canClub && progress.xp >= clubTier.threshold + ballTier.threshold)
+    claimSelectedId = clubTier.choices.includes(selectedId) ? selectedId : clubTier.choices[0];
   if (!claimSelectedId && !cartBallId) return;
 
   const dialog = document.querySelector('#claim-modal .claim-dialog');
   dialog.classList.remove('celebrating', 'revealed');
   document.getElementById('claim-close').setAttribute('aria-label', 'Close cart');
   document.getElementById('claim-title').textContent = 'Ready to roll?';
-  document.getElementById('claim-intro').textContent = 'Reach the XP target. Keep every point.';
+  document.getElementById('claim-intro').textContent = 'Choose your gear. Spend XP. Take it to the course.';
   const clubChoices = document.getElementById('claim-cart-choices');
   clubChoices.innerHTML = canClub
     ? `<button class="cart-choice cart-none" type="button" data-cart-club="" aria-pressed="false">No club</button>${clubTier.choices.map(id => `<button class="cart-choice" type="button" data-cart-club="${id}" aria-pressed="false">${clubs[id].name}</button>`).join('')}`
@@ -297,18 +303,18 @@ function renderCart() {
   const itemCount = Number(!!claimSelectedId) + Number(!!cartBallId);
   const clubCost = claimSelectedId ? tiers[currentTierIndex()].threshold : 0;
   const ballCost = cartBallId ? ballTiers[currentBallTierIndex()].threshold : 0;
-  const needed = Math.max(clubCost, ballCost);
+  const needed = clubCost + ballCost;
   document.getElementById('claim-intro').textContent = itemCount === 2
-    ? 'One XP milestone unlocks both. Your total stays.'
-    : 'Reach the XP target. Keep every point.';
+    ? 'Two upgrades. One satisfying checkout.'
+    : 'Your next upgrade is one tap away.';
   document.getElementById('claim-step').textContent = `YOUR CART / ${itemCount} ITEM${itemCount === 1 ? '' : 'S'}`;
   document.getElementById('claim-art').innerHTML = `<div class="cart-art-pair">${claimSelectedId ? `<div class="cart-art-club">${clubArtwork(clubs[claimSelectedId])}</div>` : ''}${cartBallId ? `<div class="cart-art-ball">${window.BallUpgrades.artwork(cartBallId)}</div>` : ''}</div>`;
   document.getElementById('claim-cost').textContent = clubCost ? `${clubCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-ball-cost').textContent = ballCost ? `${ballCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-balance').textContent = `${progress.xp.toLocaleString()} XP`;
   document.getElementById('claim-needed').textContent = needed ? `${needed.toLocaleString()} XP` : '—';
-  document.getElementById('claim-after').textContent = `${progress.xp.toLocaleString()} XP`;
-  document.getElementById('claim-confirm-price').textContent = needed ? `${needed.toLocaleString()} XP target` : '';
+  document.getElementById('claim-after').textContent = needed > progress.xp ? `${(needed - progress.xp).toLocaleString()} XP SHORT` : `${(progress.xp - needed).toLocaleString()} XP`;
+  document.getElementById('claim-confirm-price').textContent = needed ? `${needed.toLocaleString()} XP` : '';
   document.getElementById('claim-confirm-text').textContent = itemCount === 2 ? 'Purchase both' : claimSelectedId ? 'Purchase club' : cartBallId ? 'Purchase ball' : 'Choose gear';
   document.getElementById('claim-confirm').disabled = !itemCount || progress.xp < needed;
   document.querySelectorAll('[data-cart-club]').forEach(button => {
@@ -324,16 +330,12 @@ function renderCart() {
 document.getElementById('claim-button').addEventListener('click', () => openClaimCart(selectedId));
 
 document.getElementById('claim-confirm').addEventListener('click', () => {
-  const latest = loadProgress();
-  progress.xp = Math.max(progress.xp, latest.xp);
-  progress.holeCount = Math.max(progress.holeCount, latest.holeCount);
-  progress.claimed = [...new Set([...progress.claimed, ...latest.claimed])];
-  progress.claimedBallTiers = [...new Set([...progress.claimedBallTiers, ...latest.claimedBallTiers])];
+  progress = loadProgress();
   const clubTierIndex = currentTierIndex();
   const ballTierIndex = currentBallTierIndex();
   const validClub = claimSelectedId && !allClaimed() && tiers[clubTierIndex].choices.includes(claimSelectedId);
   const validBall = cartBallId && !allBallsClaimed() && ballTiers[ballTierIndex].choices.includes(cartBallId);
-  const needed = Math.max(validClub ? tiers[clubTierIndex].threshold : 0, validBall ? ballTiers[ballTierIndex].threshold : 0);
+  const needed = (validClub ? tiers[clubTierIndex].threshold : 0) + (validBall ? ballTiers[ballTierIndex].threshold : 0);
   if ((claimSelectedId && !validClub) || (cartBallId && !validBall) || (!validClub && !validBall) || progress.xp < needed) {
     hideModal('claim-modal');
     render();
@@ -352,7 +354,7 @@ document.getElementById('claim-confirm').addEventListener('click', () => {
     progress.claimedBallTiers.push(ballTierIndex);
     progress.ownedBalls.push(cartBallId);
   }
-  saveProgress({ clubChanged: !!validClub, ballChanged: !!validBall });
+  saveProgress({ clubChanged: !!validClub, ballChanged: !!validBall, xpChange: -needed });
   render();
 
   const dialog = document.querySelector('#claim-modal .claim-dialog');
@@ -361,7 +363,7 @@ document.getElementById('claim-confirm').addEventListener('click', () => {
   document.getElementById('claim-title').textContent = validClub && validBall ? 'Double upgrade!' : 'It is yours!';
   document.getElementById('claim-intro').textContent = validClub && validBall ? 'Club and ball are taking their places in the bag.' : validClub ? 'Your new club is taking its place in the bag.' : 'Your new ball is ready to roll.';
   document.getElementById('claim-after').textContent = `${progress.xp.toLocaleString()} XP`;
-  document.getElementById('claim-announcement').textContent = `${[chosenClub?.name, chosenBall?.name].filter(Boolean).join(' + ')} equipped. ${progress.xp.toLocaleString()} XP kept.`;
+  document.getElementById('claim-announcement').textContent = `${[chosenClub?.name, chosenBall?.name].filter(Boolean).join(' + ')} equipped. ${progress.xp.toLocaleString()} XP left.`;
   document.getElementById('claim-cart-choices').hidden = true;
   document.getElementById('claim-ball-choices').hidden = true;
   document.getElementById('claim-back').hidden = true;
@@ -524,12 +526,8 @@ function takeShot() {
     ball.style.opacity = '0';
     animation.cancel();
     const latest = loadProgress();
-    progress.xp = Math.max(progress.xp, latest.xp);
-    progress.holeCount = Math.max(progress.holeCount, latest.holeCount);
-    const earned = 350 + Math.min(200, progress.holeCount * 25);
-    progress.xp += earned;
-    progress.holeCount += 1;
-    saveProgress();
+    const earned = 180 + Math.min(120, latest.holeCount * 12);
+    saveProgress({ xpChange: earned, holesChange: 1 });
     render();
     document.getElementById('practice-result').textContent = `HOLE IN ONE! +${earned} XP`;
     document.getElementById('power-value').textContent = 'Perfect, obviously.';

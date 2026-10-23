@@ -46,17 +46,21 @@ function courseLayout(level) {
     const dx=b.x-a.x,dz=b.z-a.z,n=Math.hypot(dx,dz)||1;
     const across=Math.abs((x-p.x)*(-dz/n)+(z-p.z)*(dx/n));
     const width=corridorHalfWidth(t);
-    const q=Math.max(0,Math.min(1,(across-width+.55)/.9));
+    // The playable lane stays broad and nearly level across its width. The
+    // soft earth bank rises behind the timber rail, not beneath the ball.
+    const q=Math.max(0,Math.min(1,(across-width+.03)/.9));
     const outerQ=Math.max(0,Math.min(1,(across-width-.6)/.9));
     const outerFade=1-outerQ*outerQ*(3-2*outerQ);
     const teeFade=Math.max(0,Math.min(1,t/.055));
     const endFade=Math.max(0,Math.min(1,(1.08-t)/.08));
-    return .73*q*q*(3-2*q)*outerFade*teeFade*endFade;
+    return .42*q*q*(3-2*q)*outerFade*teeFade*endFade;
   };
   const heightAt=(x,z)=>{
     const t=Math.max(0,Math.min(1,(x-start.x)/span)),p=centerline(t);
     const across=Math.hypot(x-p.x,z-p.z);
-    return .04+(p.y-.04)*Math.max(0,Math.min(1,(2.1-across)/.8))+bankHeightAt(x,z);
+    const rail=corridorHalfWidth(t),outside=Math.max(0,Math.min(1,(across-rail)/1.5));
+    const hillFade=1-outside*outside*(3-2*outside);
+    return .04+(p.y-.04)*hillFade+bankHeightAt(x,z);
   };
   const features=blueprint.features.map((spec,index)=>{
     const p=pathPoint(spec.t,spec.across);
@@ -84,6 +88,7 @@ const courseSubtitles = ['One little green. One perfectly impossible shot.', 'A 
 const scene = document.getElementById('scene');
 const gameShell = document.querySelector('.game-shell');
 const ctx = scene.getContext('2d');
+let renderer3D = null;
 const $ = (id) => document.getElementById(id);
 const stage = { width: 0, height: 0, dpr: 1, time: 0, featureTime: 0 };
 let savedProgress = readProgress();
@@ -155,9 +160,19 @@ function resize() {
   ctx.setTransform(stage.dpr, 0, 0, stage.dpr, 0, 0);
   ctx.imageSmoothingEnabled=true;
   ctx.imageSmoothingQuality='high';
+  renderer3D?.resize();
 }
 window.addEventListener('resize', resize);
 resize();
+if(/(?:^|[?&])render=3d(?:&|$)/.test(window.location?.search||'')&&window.Game3D?.create){
+  try{
+    renderer3D=window.Game3D.create(document.getElementById('scene-3d'));
+    renderer3D.resize();
+    gameShell.classList.add('render-3d');
+    const toggle=$('render-toggle');
+    if(toggle){toggle.href='./game.html';toggle.textContent='CLASSIC VIEW ↗';}
+  }catch(error){console.warn('3D course unavailable; using classic view.',error);renderer3D=null;}
+}
 updateHud();
 window.addEventListener('pageshow',()=>{savedProgress=readProgress();updateHud();});
 if (courseState.completed) showCelebration(false);
@@ -373,7 +388,7 @@ function drawBackstop(){
   const point=(across,along,lift)=>{
     const x=wall.x+wall.normal.x*across+wall.tangent.x*along;
     const z=wall.z+wall.normal.z*across+wall.tangent.z*along;
-    return{x,y:layout.heightAt(x,z)+lift,z};
+    return{x,y:layout.heightAt(x,z)+cupBowlDrop(x,z)+lift,z};
   };
   const w=wall.halfSpan,h=wall.height,d=wall.thickness;
   // Front face is the same world plane used by the backstop contact. The cap
@@ -463,30 +478,32 @@ function drawBunker(){
   ellipseWorld(p.x,y+.018,p.z,.78,.48,'#bba773','#eee1aa',3);
   ellipseWorld(p.x,y+.024,p.z,.62,.35,'#e9d9a6');
 }
+function riverWorldPoint(across){
+  const river=layout.river,base=layout.pathPoint(river.t,across),dir=pathTangent(river.t),shift=riverCenter(across);
+  return{x:base.x+dir.x*shift,z:base.z+dir.z*shift};
+}
 function drawWater(t){
   const river=layout.river;if(!river)return;
-  const surface=layout.centerline(river.t).y+.025;
-  const pts=[];
-  for(let i=0;i<=24;i++){
-    const across=-river.span+i/24*river.span*2,p=layout.pathPoint(river.t,across);
-    pts.push({x:p.x,y:surface,z:p.z});
+  const dir=pathTangent(river.t),waterLeft=[],waterRight=[],banks=[[],[]];
+  for(let i=0;i<=28;i++){
+    const across=-river.span+i/28*river.span*2,p=riverWorldPoint(across);
+    const surface=layout.heightAt(p.x,p.z)-.10;
+    for(const [index,side] of [-1,1].entries()){
+      const inner={x:p.x+dir.x*side*river.halfWidth,y:surface+.008,z:p.z+dir.z*side*river.halfWidth};
+      const ox=p.x+dir.x*side*(river.halfWidth+.22),oz=p.z+dir.z*side*(river.halfWidth+.22);
+      banks[index].push({inner,outer:{x:ox,y:layout.heightAt(ox,oz)+.012,z:oz}});
+      (side<0?waterLeft:waterRight).push(inner);
+    }
   }
+  for(const bank of banks)poly([...bank.map(p=>p.outer),...bank.map(p=>p.inner).reverse()],'#94775c','#dfcda4',1);
   const water=ctx.createLinearGradient(0,stage.height*.32,0,stage.height*.83);
   water.addColorStop(0,'#27899b');water.addColorStop(.55,'#36a6b4');water.addColorStop(1,'#217f91');
-  ribbon(pts,river.halfWidth*2+.38,'#6f8e7b','#ded0a8');
-  ribbon(pts.map(p=>({...p,y:surface+.004})),river.halfWidth*2+.12,'#1c6377','#b2e7d5');
-  ribbon(pts.map(p=>({...p,y:surface+.009})),river.halfWidth*2,water,'#b2e7d5');
-  ribbon(pts.map(p=>({...p,y:surface+.014})),river.halfWidth*1.58,'#66c5c76e');
+  poly([...waterLeft,...waterRight.reverse()],water,'#b2e7d5',1.4);
   for(let i=0;i<9;i++){
-    const across=-river.span+((i/9+t*.00008)%1)*river.span*2;
-    const p=layout.pathPoint(river.t,across),left=layout.pathPoint(river.t-.008,across),right=layout.pathPoint(river.t+.008,across);
-    lineWorld([{x:left.x,y:surface+.017,z:left.z},{x:p.x,y:surface+.019,z:p.z},{x:right.x,y:surface+.017,z:right.z}],
-      i%2?'#e5fff5bb':'#b1f1e8cc',Math.max(1.5,project(p.x,surface,p.z).scale*.04));
-  }
-  for(const across of [-river.span*.7,0,river.span*.72]){
-    const p=layout.pathPoint(river.t,across),dir=pathTangent(river.t);
-    lineWorld([{x:p.x-dir.x*.24,y:surface+.023,z:p.z-dir.z*.24},{x:p.x+dir.x*.14,y:surface+.024,z:p.z+dir.z*.14}],
-      '#d9fff0a0',Math.max(1.5,project(p.x,surface,p.z).scale*.025));
+    const across=-river.span+((i/9+t*.00008)%1)*river.span*2,p=riverWorldPoint(across);
+    const y=layout.heightAt(p.x,p.z)-.08;
+    lineWorld([{x:p.x-dir.x*.22,y,z:p.z-dir.z*.22},{x:p.x+dir.x*.16,y:y+.003,z:p.z+dir.z*.16}],
+      i%2?'#e5fff5bb':'#b1f1e8cc',Math.max(1.5,project(p.x,y,p.z).scale*.04));
   }
 }
 function tree(x,z,s=1){const y=layout.heightAt(x,z),p=project(x,y+.03,z);if(p.depth<.5)return;const top=project(x,y+1.45*s,z),r=p.scale*.32*s;ellipseWorld(x,y+.02,z,.31*s,.2*s,'#417d5a57');ctx.strokeStyle='#816d45';ctx.lineWidth=Math.max(2,p.scale*.055)*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(top.x,top.y);ctx.stroke();const g=ctx.createRadialGradient(top.x-r*.35,top.y-r*.35,1,top.x,top.y,r*1.1);g.addColorStop(0,'#b8dba1');g.addColorStop(.7,'#438b68');g.addColorStop(1,'#2e705a');ctx.fillStyle=g;ctx.beginPath();ctx.arc(top.x,top.y,r,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d7e4a1bb';ctx.beginPath();ctx.arc(top.x-r*.3,top.y-r*.25,r*.22,0,Math.PI*2);ctx.fill();}
@@ -500,13 +517,13 @@ function drawDetails(t){
 function drawPad(feature,t){
   const {x,z}=feature,ground=layout.heightAt(x,z);
   const beat=Math.sin(t*.007)*.5+.5;
-  ellipseWorld(x,ground+.012,z,.93,.81,'#253a3455');
-  raisedDisc(x,z,ground,.82,.71,.045,'#423052','#60447d','#d5b8fa');
-  ellipseWorld(x,ground+.052,z,.7,.59,'#e6c7ff','#684391',2);
-  ellipseWorld(x,ground+.057,z,.56,.45,'#8555b9','#fff1cf',3);
-  ellipseWorld(x,ground+.06,z,.43,.33,'#b47be1');
+  ellipseWorld(x,ground+.012,z,.87,.87,'#253a3455');
+  raisedDisc(x,z,ground,.78,.78,.045,'#423052','#60447d','#d5b8fa');
+  ellipseWorld(x,ground+.052,z,.68,.68,'#e6c7ff','#684391',2);
+  ellipseWorld(x,ground+.057,z,.55,.55,'#8555b9','#fff1cf',3);
+  ellipseWorld(x,ground+.06,z,.42,.42,'#b47be1');
   for(let i=0;i<16;i++){
-    const a=i*Math.PI/8,q=project(x+Math.cos(a)*.76,ground+.061,z+Math.sin(a)*.65);
+    const a=i*Math.PI/8,q=project(x+Math.cos(a)*.75,ground+.061,z+Math.sin(a)*.75);
     ctx.fillStyle=i%2?'#ffe2b9':'#fffbde';ctx.beginPath();ctx.arc(q.x,q.y,Math.max(1.5,q.scale*(.018+.005*beat)),0,7);ctx.fill();
   }
   const p=project(x,ground+.065,z),r=Math.max(13,p.scale*.38);
@@ -569,8 +586,8 @@ function drawCannon(feature){
   ellipseWorld(x,ground+.012,z,.99,.75,'#24363366');
   raisedDisc(x,z,ground,.88,.65,.07,'#544c3b','#b47950','#f8dcaa');
   ellipseWorld(x,ground+.077,z,.63,.49,'#bb6d43','#eec48d',2);
-  const rear={x:x-dir.x*.5+side.x*.18,y:ground+.54,z:z-dir.z*.5+side.z*.18};
-  const front={x:x+dir.x*.58-side.x*.16,y:ground+.72,z:z+dir.z*.58-side.z*.16};
+  const rear={x:x-dir.x*.47,y:ground+.56,z:z-dir.z*.47};
+  const front={x:x+dir.x*.59,y:ground+.73,z:z+dir.z*.59};
   const ringPoint=(center,a,r)=>({x:center.x+side.x*Math.cos(a)*r-dir.x*Math.sin(a)*r*.17,
     y:center.y+Math.sin(a)*r*.985,z:center.z+side.z*Math.cos(a)*r-dir.z*Math.sin(a)*r*.17});
   const panels=[];
@@ -715,23 +732,25 @@ function drawFeatures(t){
   }
 }
 function drawHole(t){
-  const p=project(CUP.x,.08,CUP.z);
-  ellipseWorld(CUP.x,.035,CUP.z,.89,.8,'#32524655');
-  ellipseWorld(CUP.x,.075,CUP.z,.79,.74,'#f8e8b2','#b77843',4);
-  ellipseWorld(CUP.x,.081,CUP.z,.68,.64,'#a0b977','#fff7d4',3);
-  ellipseWorld(CUP.x,.086,CUP.z,.59,.57,'#143c31','#fff5d2',4);
+  const cupY=layout.heightAt(CUP.x,CUP.z)+cupBowlDrop(CUP.x,CUP.z);
+  const p=project(CUP.x,cupY+.04,CUP.z);
+  ellipseWorld(CUP.x,cupY-.005,CUP.z,.89,.8,'#32524655');
+  ellipseWorld(CUP.x,cupY+.035,CUP.z,.79,.74,'#f8e8b2','#b77843',4);
+  ellipseWorld(CUP.x,cupY+.041,CUP.z,.68,.64,'#a0b977','#fff7d4',3);
+  ellipseWorld(CUP.x,cupY+.046,CUP.z,.59,.57,'#143c31','#fff5d2',4);
   const mouth=ctx.createRadialGradient(p.x-p.scale*.13,p.y-p.scale*.07,1,p.x,p.y,Math.max(8,p.scale*.55));
   mouth.addColorStop(0,'#071f1d');mouth.addColorStop(.7,'#0b302b');mouth.addColorStop(1,'#32604a');
-  ellipseWorld(CUP.x,.07,CUP.z,.51,.49,mouth);
+  ellipseWorld(CUP.x,cupY+.03,CUP.z,.51,.49,mouth);
   ctx.strokeStyle='#f7e5ad';ctx.lineWidth=Math.max(2,p.scale*.034);ctx.beginPath();
   ctx.ellipse(p.x,p.y,Math.max(8,p.scale*.51),Math.max(4,p.scale*.2),0,.02,Math.PI-.02);ctx.stroke();
   const poleX=CUP.x+.72;
-  ellipseWorld(poleX,.08,CUP.z,.19,.15,'#72543b','#fff0c5',2);
-  lineWorld([{x:poleX,y:.09,z:CUP.z},{x:poleX-.34,y:.095,z:CUP.z+.23}],'#576c5055',5);
-  lineWorld([{x:poleX,y:.08,z:CUP.z},{x:poleX,y:2.15,z:CUP.z}], '#986c45',7);
-  lineWorld([{x:poleX,y:.08,z:CUP.z},{x:poleX,y:2.15,z:CUP.z}], '#fff7e2',4);
-  const top=project(poleX,2.15,CUP.z),wave=Math.sin(t*.004)*.1;
-  const tip=project(poleX+1.05,1.91+wave,CUP.z),base=project(poleX,1.59,CUP.z);
+  const poleY=layout.heightAt(poleX,CUP.z)+cupBowlDrop(poleX,CUP.z);
+  ellipseWorld(poleX,poleY+.04,CUP.z,.19,.15,'#72543b','#fff0c5',2);
+  lineWorld([{x:poleX,y:poleY+.05,z:CUP.z},{x:poleX-.34,y:poleY+.055,z:CUP.z+.23}],'#576c5055',5);
+  lineWorld([{x:poleX,y:poleY+.04,z:CUP.z},{x:poleX,y:poleY+2.11,z:CUP.z}], '#986c45',7);
+  lineWorld([{x:poleX,y:poleY+.04,z:CUP.z},{x:poleX,y:poleY+2.11,z:CUP.z}], '#fff7e2',4);
+  const top=project(poleX,poleY+2.11,CUP.z),wave=Math.sin(t*.004)*.1;
+  const tip=project(poleX+1.05,poleY+1.87+wave,CUP.z),base=project(poleX,poleY+1.55,CUP.z);
   ctx.save();ctx.shadowColor='#9b4725';ctx.shadowBlur=3;
   ctx.fillStyle='#e85e7e';ctx.strokeStyle='#fff0c3';ctx.lineWidth=2.5;
   ctx.beginPath();ctx.moveTo(top.x,top.y);ctx.quadraticCurveTo((top.x+tip.x)*.5,top.y-8,tip.x,tip.y);ctx.lineTo(base.x,base.y);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
@@ -754,22 +773,25 @@ function drawRescueEffect(t){
 function drawSlopeGuides(){
   for(const [index,radius] of [.95,1.65,2.45,3.3].entries()){
     const pts=[];
-    for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;pts.push({x:CUP.x+Math.cos(a)*radius,y:.1,z:CUP.z+Math.sin(a)*radius*.78});}
+    for(let i=0;i<=48;i++){const a=i/48*Math.PI*2,x=CUP.x+Math.cos(a)*radius,z=CUP.z+Math.sin(a)*radius*.78;
+      pts.push({x,y:layout.heightAt(x,z)+cupBowlDrop(x,z)+.06,z});}
     lineWorld(pts,index%2?'#7b9f6288':'#fff3bcad',index===0?4:3,[index===0?0:14,index===0?0:10]);
   }
   for(const distance of [1.12,1.92,2.78]){
     const x=CUP.x-courseForward.x*distance,z=CUP.z-courseForward.z*distance;
-    const p=project(x,.12,z),size=Math.max(5,Math.min(15,p.scale*.12));
+    const p=project(x,layout.heightAt(x,z)+cupBowlDrop(x,z)+.08,z),size=Math.max(5,Math.min(15,p.scale*.12));
     ctx.strokeStyle='#f7e6aa';ctx.lineWidth=Math.max(2,size*.23);ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(p.x-size,p.y-size*.4);ctx.lineTo(p.x,p.y+size*.25);ctx.lineTo(p.x+size,p.y-size*.4);ctx.stroke();
   }
 }
 function drawBall(t){
-  const p=project(ball.x,ball.y,ball.z),ground=project(ball.x,layout.heightAt(ball.x,ball.z)+.03,ball.z),r=Math.max(7,p.scale*.19);
+  const surface=courseSurfaceAt(ball.x,ball.z,ball.y);
+  const p=project(ball.x,ball.y,ball.z),ground=project(ball.x,surface+.03,ball.z),r=Math.max(7,p.scale*.19);
   ctx.save();
-  const fade=shot?.sinking?Math.max(0,Math.min(1,(ball.y+.27)/.38)):1;
+  const fade=shot?.sinking?Math.max(0,Math.min(1,
+    (ball.y-shot.sinkFloor)/Math.max(.01,shot.sinkStartY-shot.sinkFloor))):1;
   ctx.globalAlpha=fade;
-  const altitude=Math.max(0,ball.y-layout.heightAt(ball.x,ball.z)-BALL_RADIUS);
+  const altitude=Math.max(0,ball.y-surface-BALL_RADIUS);
   ctx.fillStyle=`rgba(22,66,42,${.11/(1+altitude*.8)})`;ctx.beginPath();ctx.ellipse(ground.x+5,ground.y+3,r*(1.6+altitude*.5),r*(.57+altitude*.16),0,0,7);ctx.fill();
   ctx.fillStyle=`rgba(18,56,38,${.27/(1+altitude*1.4)})`;ctx.beginPath();ctx.ellipse(ground.x+3,ground.y+2,r*(1.12+altitude*.22),r*(.31+altitude*.09),0,0,7);ctx.fill();
   for(let i=0;i<trail.length;i++){
@@ -964,13 +986,37 @@ function frame(now){
   // Keep ball, moving colliders, and follow camera on the same simulation
   // clock. A slow frame can catch up without taking a visible giant step.
   if(phase==='running')updateShot(Math.min(.12,frameMs/1000));else stage.featureTime=now/1000;
-  updateCamera(now);background(now);drawStage();drawBanks();drawBunker();drawFairway();drawWater(now);
-  drawSlopeGuides();drawDetails(now);drawCorridorRails();drawDepthObjects(stage.featureTime*1000);
-  drawNearRails();drawRescueEffect(now);drawAim();drawClub(now);drawParticles(dt);requestAnimationFrame(frame);
+  updateCamera(now);
+  if(renderer3D){
+    renderer3D.render({layout,camera,ball,shot,progress:savedProgress,featureTime:stage.featureTime,
+      stage,movingFeature,phase,courseState,riverCenter,bridgeDeckHeight,cupBowlDrop,courseSurfaceAt,
+      ballStyle:window.BallUpgrades?.get(savedProgress.equippedBall),
+      clubStyle:clubAppearance(savedProgress.equipped)});
+    ctx.clearRect(0,0,stage.width,stage.height);
+    drawRescueEffect(now);drawAim();drawParticles(dt);
+  }else{
+    background(now);drawStage();drawBanks();drawBunker();drawFairway();drawWater(now);
+    drawSlopeGuides();drawDetails(now);drawCorridorRails();drawDepthObjects(stage.featureTime*1000);
+    drawNearRails();drawRescueEffect(now);drawAim();drawClub(now);drawParticles(dt);
+  }
+  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-function showCallout(message, icon='✦', duration=1300){$('callout-text').textContent=message;$('callout-icon').textContent=icon;$('event-callout').classList.add('visible');clearTimeout(calloutTimer);calloutTimer=setTimeout(()=>$('event-callout').classList.remove('visible'),duration)}
+function showCallout(message, icon='✦', duration=1300){
+  const callout=$('event-callout');
+  $('callout-text').textContent=message;
+  $('callout-icon').textContent=icon;
+  callout.classList.add('visible');
+  // Restart the entrance for every new event, including events that arrive
+  // while the previous callout is still on screen.
+  callout.classList.remove('popping');
+  void callout.offsetWidth;
+  callout.classList.add('popping');
+  callout.onanimationend=event=>{if(event.target===callout)callout.classList.remove('popping');};
+  clearTimeout(calloutTimer);
+  calloutTimer=setTimeout(()=>callout.classList.remove('visible','popping'),duration);
+}
 function setPower(value){power=Math.max(0,Math.min(100,value));$('shot-percent').textContent=`${Math.round(power)}%`;$('power-fill').style.width=`${power}%`;$('shot-instruction').textContent=power<25?'A little goes a long way…':power<70?'Looking good. Let it fly.':'This is going to be BIG.'}
 function pointerPos(e){const r=scene.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 gameShell.addEventListener('pointerdown',e=>{
@@ -1068,7 +1114,7 @@ function contactBumper(x,z,radius,baseY=layout.heightAt(x,z),kind='bumper',heigh
 }
 function contactFlagPole(){
   const x=CUP.x+.72,z=CUP.z,radius=.07+BALL_RADIUS;
-  if(ball.y>.04+2.15+BALL_RADIUS)return;
+  if(ball.y>layout.heightAt(x,z)+cupBowlDrop(x,z)+2.15+BALL_RADIUS)return;
   const dx=ball.x-x,dz=ball.z-z,d=Math.hypot(dx,dz);
   if(d>=radius)return;
   const nx=d>.001?dx/d:-1,nz=d>.001?dz/d:0;
@@ -1094,6 +1140,38 @@ function contactBoost(kind,feature,radiusX,radiusZ,impulse,lift,label){
   shot.velocity.y=Math.max(shot.velocity.y,lift*shot.ballProfile.liftMultiplier);shot.usedBoosts.add(kind);
   contactEvent(kind,x,z,label,'✹');
 }
+function contactCannon(feature){
+  if(shot.usedBoosts.has(feature.id)||shot.cannon?.stage==='loading'||shot.cannon?.stage==='chambered')return;
+  const base=layout.heightAt(feature.x,feature.z);
+  const loc=localCoordinates(feature,ball.x,ball.z);
+  if((loc.along/.64)**2+(loc.across/.5)**2>1||ball.y>base+.08+BALL_RADIUS+.035)return;
+  const dir=pathTangent(feature.t);
+  const rear={x:feature.x-dir.x*.47,y:base+.56,z:feature.z-dir.z*.47};
+  const muzzle={x:feature.x+dir.x*.59,y:base+.73,z:feature.z+dir.z*.59};
+  shot.cannon={id:feature.id,startedAt:shot.elapsed,duration:.55,stage:'loading',
+    feature:{x:feature.x,z:feature.z,t:feature.t},capture:{...ball},rear,muzzle,dir,
+    entrySpeed:Math.hypot(shot.velocity.x,shot.velocity.z)};
+  shot.usedBoosts.add(feature.id);
+  shot.velocity.x=0;shot.velocity.y=0;shot.velocity.z=0;
+  shot.windActive=false;shot.riverActive=false;
+  contactEvent('cannon',feature.x,feature.z,'CANNON LOADING','✹');
+}
+function advanceCannon(){
+  const c=shot.cannon,age=shot.elapsed-c.startedAt;
+  const from=age<.16?c.capture:age<.34?c.rear:c.muzzle;
+  const to=age<.16?c.rear:c.muzzle;
+  const t=age<.16?smooth(Math.max(0,age/.16)):
+    age<.34?smooth((age-.16)/.18):1;
+  ball.x=mix(from.x,to.x,t);ball.y=mix(from.y,to.y,t);ball.z=mix(from.z,to.z,t);
+  c.stage=age<.34?'loading':'chambered';
+  if(age>=c.duration){
+    c.stage='fired';c.firedAt=shot.elapsed;
+    const speed=Math.max(4.2,c.entrySpeed+3.7);
+    shot.velocity.x=c.dir.x*speed;shot.velocity.z=c.dir.z*speed;
+    shot.velocity.y=3*shot.ballProfile.liftMultiplier;
+    contactEvent('cannon',c.muzzle.x,c.muzzle.z,'CANNON FIRED','✹');
+  }
+}
 function contactLoop(feature){
   if(shot.usedBoosts.has(feature.id))return;
   const loc=localCoordinates(feature,ball.x,ball.z),ground=layout.heightAt(feature.x,feature.z);
@@ -1107,6 +1185,44 @@ function localCoordinates(feature,x,z){
   const dir=pathTangent(feature.t),across={x:-dir.z,z:dir.x};
   return{along:(x-feature.x)*dir.x+(z-feature.z)*dir.z,
     across:(x-feature.x)*across.x+(z-feature.z)*across.z,dir,normal:across};
+}
+function riverCenter(across){
+  const span=layout.river?.span||3.2;
+  return .18*Math.sin(Math.PI*across/span)+.07*Math.sin(3*Math.PI*across/span);
+}
+function cupBowlDrop(x,z){
+  const radius=Math.hypot(x-CUP.x,z-CUP.z);
+  const q=Math.max(0,1-(radius/3.3)**2);
+  return -.12*q*q;
+}
+function riverRegion(x,z){
+  if(!layout.river)return null;
+  const loc=localCoordinates(layout.river,x,z);
+  if(Math.abs(loc.across)>layout.river.span)return null;
+  return{...loc,distance:Math.abs(loc.along-riverCenter(loc.across))};
+}
+function bridgeDeckHeight(feature,x,z){
+  const loc=localCoordinates(feature,x,z);
+  const ramp=Math.max(0,Math.min(1,(1.36-Math.abs(loc.along))/.28));
+  return layout.heightAt(x,z)+.18*smooth(ramp);
+}
+function bridgeSurfaceAt(x,z,currentY){
+  const bridge=layout.features.find(f=>f.kind==='bridge');
+  if(!bridge)return null;
+  const loc=localCoordinates(bridge,x,z);
+  if(Math.abs(loc.along)>1.36||Math.abs(loc.across)>.78-BALL_RADIUS+.02)return null;
+  const deck=bridgeDeckHeight(bridge,x,z);
+  return currentY>=deck+BALL_RADIUS-.10?deck:null;
+}
+function courseSurfaceAt(x,z,currentY){
+  const deck=bridgeSurfaceAt(x,z,currentY);
+  if(deck!==null)return deck;
+  const grade=layout.heightAt(x,z)+cupBowlDrop(x,z),river=riverRegion(x,z);
+  if(!river)return grade;
+  const edge=layout.river.halfWidth,bank=.22;
+  const depth=river.distance<=edge?1:
+    river.distance>=edge+bank?0:1-smooth((river.distance-edge)/bank);
+  return grade-.10*depth;
 }
 function nearestPath(x,z){
   let t=Math.max(0,Math.min(1,(x-START.x)/layout.span));
@@ -1144,7 +1260,7 @@ function backstopContact(before){
   const priorAlong=(before.x-wall.x)*wall.tangent.x+(before.z-wall.z)*wall.tangent.z;
   const edgeAcross=Math.max(-wall.halfSpan,Math.min(wall.halfSpan,across));
   const edgeX=wall.x+wall.normal.x*edgeAcross,edgeZ=wall.z+wall.normal.z*edgeAcross;
-  const top=layout.heightAt(edgeX,edgeZ)+wall.height;
+  const top=layout.heightAt(edgeX,edgeZ)+cupBowlDrop(edgeX,edgeZ)+wall.height;
   if(ball.y>top+BALL_RADIUS)return;
   // A high shot can clear the rail and land behind it. The full hinged leaf
   // visibly folds toward the cup instead of trapping the ball on its rear face.
@@ -1174,9 +1290,8 @@ function backstopContact(before){
 }
 function bridgeContact(feature,before){
   let loc=localCoordinates(feature,ball.x,ball.z);
-  const prior=localCoordinates(feature,before.x,before.z),base=layout.heightAt(feature.x,feature.z);
-  const ramp=Math.max(0,Math.min(1,(1.36-Math.abs(loc.along))/.28));
-  const deck=base+.18*ramp;
+  const prior=localCoordinates(feature,before.x,before.z),base=layout.heightAt(ball.x,ball.z);
+  const deck=bridgeDeckHeight(feature,ball.x,ball.z);
   if(Math.abs(loc.along)>1.36+BALL_RADIUS)return false;
   const sideWidth=Math.abs(loc.along)<1.03?.82:.78;
   const sideTop=Math.abs(loc.along)<1.03?base+.74:deck;
@@ -1196,20 +1311,14 @@ function bridgeContact(feature,before){
       loc=localCoordinates(feature,ball.x,ball.z);
     }
   }
-  if(Math.abs(loc.across)<.78-BALL_RADIUS+.02&&Math.abs(loc.along)<1.36&&ball.y<deck+BALL_RADIUS&&
-     (Math.abs(prior.across)<.78||ball.y>=deck+BALL_RADIUS-.03)){
-    ball.y=deck+BALL_RADIUS;if(shot.velocity.y<0)shot.velocity.y=0;
-  }
+  // The continuous ramp/deck support is resolved in courseSurfaceAt.
   return true;
 }
 function riverContact(dt){
-  if(!layout.river)return false;
-  const f={...layout.river,t:layout.river.t},loc=localCoordinates(f,ball.x,ball.z);
-  if(Math.abs(loc.along)>layout.river.halfWidth||Math.abs(loc.across)>layout.river.span)return false;
-  const waterSurface=layout.centerline(layout.river.t).y+.039;
-  if(ball.y>waterSurface+BALL_RADIUS+.035)return false;
-  const bridge=layout.features.find(item=>item.kind==='bridge');
-  if(bridge){const onBridge=localCoordinates(bridge,ball.x,ball.z);if(Math.abs(onBridge.along)<1.08&&Math.abs(onBridge.across)<.76)return false;}
+  const loc=riverRegion(ball.x,ball.z);
+  if(!loc||loc.distance>layout.river.halfWidth)return false;
+  const waterSurface=layout.heightAt(ball.x,ball.z)-.10;
+  if(ball.y>waterSurface+BALL_RADIUS+.035||bridgeSurfaceAt(ball.x,ball.z,ball.y)!==null)return false;
   shot.velocity.x+=loc.normal.x*.95*dt;shot.velocity.z+=loc.normal.z*.95*dt;
   return true;
 }
@@ -1247,11 +1356,28 @@ function spawnMole(){
   let nx=toCup.x-incoming.x,nz=toCup.z-incoming.z,n=Math.hypot(nx,nz);
   if(n<.12){nx=toCup.x;nz=toCup.z;n=1;}
   nx/=n;nz/=n;
-  // The mound appears ahead of the ball long enough to be seen before contact.
-  const lead=Math.min(2.4,Math.max(.45,speed*.15+.45));
-  const x=ball.x+incoming.x*lead-nx*.52,z=ball.z+incoming.z*lead-nz*.52;
+  // Put the mound in the ball's predicted path, with enough overlap to strike
+  // after its visible pop-up. Never place a decorative mole outside the lane.
+  const lead=Math.min(1.25,Math.max(.65,speed*.1+.2));
+  const x=ball.x+incoming.x*lead-nx*.28,z=ball.z+incoming.z*lead-nz*.28;
+  const lane=nearestPath(x,z),width=layout.corridorHalfWidth(lane.t);
+  const contactTime=Math.max(.09,(lead-.43)/Math.max(.8,speed));
+  const predictedY=ball.y+v.y*contactTime-3.9*contactTime*contactTime;
+  const teeMargin=lane.t>0||Math.hypot(x-START.x,z-START.z)<=3.6;
+  const cupMargin=lane.t<1||Math.hypot(x-CUP.x,z-CUP.z)<=2;
+  const canReach=teeMargin&&cupMargin&&Math.abs(lane.across)<=width+.45&&
+    predictedY<=layout.heightAt(x,z)+.66;
+  shot.lastMole=shot.elapsed;
+  if(!canReach){
+    // The gust is visible in the world/HUD, and changes velocity gradually.
+    // It can guide a wildly off-course or airborne ball back to a place where
+    // a real mound could meet it on a later pass.
+    shot.gustAt=shot.elapsed;shot.lastGust=shot.elapsed;shot.gustStrength=4.8;
+    contactEvent('wind',ball.x,ball.z,'CROSSWIND RESCUE','〰');
+    return false;
+  }
   shot.mole={x,z,normalX:nx,normalZ:nz,startedAt:shot.elapsed,contactAt:null,until:shot.elapsed+1.25,active:true};
-  shot.lastMole=shot.elapsed;showCallout('MOLE TO THE RESCUE!','✳',800);
+  return true;
 }
 function moleContact(){
   const m=shot.mole;if(!m||!m.active)return;
@@ -1272,10 +1398,13 @@ function stepPhysics(dt){
   if(!shot||phase!=='running')return;
   shot.elapsed+=dt;
   const v=shot.velocity;
+  if(shot.cannon&&(shot.cannon.stage==='loading'||shot.cannon.stage==='chambered')){
+    advanceCannon();stage.featureTime=shot.start/1000+shot.elapsed;return;
+  }
   if(shot.sinking){
     const fallDrag=Math.exp(-24*dt);v.x*=fallDrag;v.z*=fallDrag;v.y-=8*dt;
     ball.x+=v.x*dt;ball.z+=v.z*dt;ball.y+=v.y*dt;
-    if(ball.y<-.27)finishShot();
+    if(ball.y<shot.sinkFloor)finishShot();
     return;
   }
   const toCup=cupDirection(),dist=toCup.distance,speed=Math.hypot(v.x,v.z);
@@ -1290,7 +1419,7 @@ function stepPhysics(dt){
   let ax=toCup.x*slopeForce-v.x*drag;
   let az=toCup.z*slopeForce-v.z*drag;
   // A real raised course changes the ball's speed along its visible hill/ramp.
-  const groundHere=layout.heightAt(ball.x,ball.z),groundAheadX=layout.heightAt(ball.x+.03,ball.z),groundAheadZ=layout.heightAt(ball.x,ball.z+.03);
+  const groundHere=courseSurfaceAt(ball.x,ball.z,ball.y),groundAheadX=courseSurfaceAt(ball.x+.03,ball.z,ball.y),groundAheadZ=courseSurfaceAt(ball.x,ball.z+.03,ball.y);
   if(ball.y<=groundHere+BALL_RADIUS+.04){ax-=(groundAheadX-groundHere)/.03*3.8;az-=(groundAheadZ-groundHere)/.03*3.8;}
   // Side spin is set by the player's initial aim, then decays as the ball rolls.
   const spin=shot.spinSign*shot.ballProfile.spinRate*shot.clubProfile.spinMultiplier*Math.max(0,1-shot.elapsed/4);
@@ -1298,16 +1427,22 @@ function stepPhysics(dt){
   const headingToCup=(v.x*toCup.x+v.z*toCup.z)/(speed||1);
   if(dist>2.8&&shot.elapsed-shot.lastGust>3.1&&
      ((shot.power<24&&shot.elapsed>.45)||(shot.elapsed>1.1&&headingToCup<.3)||(shot.elapsed>2.2&&speed<1.3))){
-    shot.gustAt=shot.elapsed;shot.lastGust=shot.elapsed;contactEvent('wind',ball.x,ball.z,'TAILWIND TO THE RESCUE','〰');
+    shot.gustAt=shot.elapsed;shot.lastGust=shot.elapsed;shot.gustStrength=1.05;
+    contactEvent('wind',ball.x,ball.z,'TAILWIND TO THE RESCUE','〰');
   }
   const gustAge=shot.gustAt===null?-1:shot.elapsed-shot.gustAt;
   const assisted=gustAge>=0&&gustAge<2.65;
   shot.windActive=assisted;
-  if(assisted){const ramp=Math.min(1,gustAge/.55),fade=Math.min(1,(2.65-gustAge)/.7);const strength=1.05*ramp*fade;ax+=toCup.x*strength;az+=toCup.z*strength;}
+  if(assisted){const ramp=Math.min(1,gustAge/.55),fade=Math.min(1,(2.65-gustAge)/.7);const strength=(shot.gustStrength||1.05)*ramp*fade;ax+=toCup.x*strength;az+=toCup.z*strength;}
   const lane=nearestPath(ball.x,ball.z),offLane=Math.abs(lane.across)>layout.corridorHalfWidth(lane.t)+.55;
+  const outward=(v.x*lane.normal.x+v.z*lane.normal.z)*Math.sign(lane.across||1);
   const behindTee=ball.x<START.x-.4;
   const needsMole=dist>2.6&&shot.elapsed-shot.lastMole>1.9&&
-    ((shot.elapsed>.65&&(offLane||behindTee))||(shot.elapsed>1.1&&headingToCup<-.05)||
+    // A fast, sharply mis-aimed launch still gets a visible initial run, then
+    // meets the mole before it can vanish into empty space off the open tee.
+    ((shot.elapsed>.13&&speed>6&&Math.abs(lane.across)>.8&&outward>3)||
+     (shot.elapsed>.15&&speed>6&&headingToCup<.3)||
+     (shot.elapsed>.65&&(offLane||behindTee))||(shot.elapsed>1.1&&headingToCup<-.05)||
      (shot.elapsed>2.4&&speed<1.05)||(shot.elapsed>4.5&&headingToCup<.68));
   if(needsMole&&(!shot.mole||!shot.mole.active))spawnMole();
   v.x+=ax*dt;v.z+=az*dt;
@@ -1327,7 +1462,7 @@ function stepPhysics(dt){
   v.y-=7.8*dt;
   const before={x:ball.x,z:ball.z};
   ball.x+=v.x*dt;ball.z+=v.z*dt;ball.y+=v.y*dt;
-  const ground=layout.heightAt(ball.x,ball.z)+BALL_RADIUS;
+  const ground=courseSurfaceAt(ball.x,ball.z,ball.y)+BALL_RADIUS;
   if(ball.y<ground){ball.y=ground;if(v.y<-.9)v.y=-v.y*shot.ballProfile.groundRestitution;else v.y=0;}
   // Curved side rails begin beyond the open tee and have no end caps.
   railContact(before);
@@ -1337,9 +1472,9 @@ function stepPhysics(dt){
   for(const raw of layout.features){
     const f=movingFeature(raw,featureTime),baseY=layout.heightAt(f.x,f.z);
     if(f.kind==='bumper')contactBumper(f.x,f.z,.37+BALL_RADIUS,baseY);
-    if(f.kind==='pad')contactBoost(f.id,f,.82,.71,2.5,2.3,'LAUNCH PAD!');
+    if(f.kind==='pad')contactBoost(f.id,f,.78,.78,2.5,2.3,'LAUNCH PAD!');
     if(f.kind==='loop')contactLoop(f);
-    if(f.kind==='cannon')contactBoost(f.id,f,.64,.5,3.7,3,'CANNON FIRED');
+    if(f.kind==='cannon')contactCannon(f);
     if(f.kind==='windmill')windmillContact(f,featureTime);
     if(f.kind==='bridge')bridgeContact(f,before);
   }
@@ -1349,8 +1484,10 @@ function stepPhysics(dt){
   // The visible flagpole stands beyond the dark cup mouth.
   contactFlagPole();
   const remaining=cupDirection(),finalSpeed=Math.hypot(v.x,v.z);
-  if(remaining.distance<.43&&finalSpeed<1.2&&ball.y<=.04+BALL_RADIUS+.03){
-    shot.sinking=true;contactEvent('cup',CUP.x,CUP.z,'RIGHT IN THE CUP!','✦');
+  const cupY=layout.heightAt(CUP.x,CUP.z)+cupBowlDrop(CUP.x,CUP.z);
+  if(remaining.distance<.32&&finalSpeed<1.2&&ball.y<=cupY+BALL_RADIUS+.045){
+    shot.sinking=true;shot.sinkStartY=ball.y;shot.sinkFloor=cupY-.29;
+    contactEvent('cup',CUP.x,CUP.z,'RIGHT IN THE CUP!','✦');
   }
 }
 function startShot(p,vector){
@@ -1358,7 +1495,11 @@ function startShot(p,vector){
   const dir=aimWorldDirection(vector),strength=Math.max(0,Math.min(100,p));
   const ballProfile=ballPhysicsProfile(savedProgress.equippedBall);
   const clubProfile=clubPhysicsProfile(savedProgress.equipped);
-  const speed=(.3+strength/100*6.6)*ballProfile.launchMultiplier*clubProfile.speedMultiplier;
+  const pull=strength/100;
+  // A full pull has a distinct burst, while short taps keep fine control.
+  // Even the strongest gear stays below one ball radius of travel per 120 Hz
+  // physics step, so narrow contacts remain detectable.
+  const speed=(.3+pull*6.6+3.5*pull**3)*ballProfile.launchMultiplier*clubProfile.speedMultiplier;
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
     windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),sinking:false,lastTrail:0,lastCue:''};
@@ -1378,7 +1519,7 @@ function updateShot(elapsedSeconds){
   if(shot.elapsed-shot.lastTrail>.045){trail.push({...ball});if(trail.length>17)trail.shift();shot.lastTrail=shot.elapsed;}
   if(shot.riverActive&&shot.lastCue!=='river'){shot.lastCue='river';showCallout('THE RIVER HELPS','≈',1000);}
 }
-function finishShot(){phase='complete';$('wind-streaks').classList.remove('active');const base=300+courseState.level*72;const bonus=Math.min(140,Math.round(shot.power*1.2));const reward=base+bonus;savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);showCelebration(true,reward);shot=null;}
+function finishShot(){phase='complete';$('wind-streaks').classList.remove('active');const base=140+35*courseState.level+30*layout.features.length+Math.round(8*layout.span);const bonus=Math.min(50,Math.round(shot.power*.5));const reward=base+bonus;savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);showCelebration(true,reward);shot=null;}
 function showCelebration(animate,reward){$('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;$('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';$('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';$('celebration').hidden=false;$('shot-dock').classList.add('hidden');if(animate)burstConfetti();}
 function burstConfetti(){const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
 $('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');updateHud();showCallout('A NEW ADVENTURE','✳',1300)});

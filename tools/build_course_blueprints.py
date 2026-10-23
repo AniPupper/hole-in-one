@@ -5,6 +5,7 @@ Run this only when editing the authored route/obstacle families below.
 """
 
 import json
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,14 +17,9 @@ CHAPTERS = [
     "Cloudburst", "Amber", "Seabreeze", "Silver", "Comet", "Canyon",
     "Aurora", "Thunder", "Marigold", "Velvet", "Solstice", "Meteor", "Legend",
 ]
-SUFFIXES = [
-    "The Open Green", "Leftward Leap", "Rightward Rush", "Double Back",
-    "Reverse Ripple", "High Arc", "Hidden Hook", "The Switchback",
-    "Slalom Run", "The Long Bend",
-]
 ROUTES = [
-    # Opening/exit slopes are world z per world x. Bends use broad Gaussian
-    # humps so the offset timber rails stay smooth, even on shorter courses.
+    # Opening/exit slopes are world z per world x. These seven introductions
+    # keep their authored silhouette while later holes use the larger set.
     (-.22, -.18, []),
     (.42, -.24, [[.43, .26, 1.25]]),
     (-.54, .12, [[.43, .27, -1.45]]),
@@ -31,9 +27,63 @@ ROUTES = [
     (-.42, -.30, [[.28, .23, -1.48], [.68, .25, 1.42]]),
     (.52, -.43, [[.52, .30, 1.75]]),
     (-.12, .47, [[.48, .27, -1.55]]),
-    (.43, .26, [[.25, .20, 1.12], [.53, .20, -1.35], [.78, .20, .95]]),
-    (-.48, -.12, [[.24, .20, -1.12], [.51, .20, 1.37], [.78, .20, -1.08]]),
-    (.16, -.49, [[.48, .31, 1.80]]),
+]
+# Beyond the seven teaching holes, use a larger authored set of silhouettes.
+# Entries are (title, route description, opening tangent, exit tangent, bends).
+# Monotone x and broad bend widths keep the rails readable and avoid hairpins.
+LATE_ROUTES = [
+    ("Crescent Left", "long left crescent", .31, -.08, [[.47, .30, 1.95]]),
+    ("Crescent Right", "long right crescent", -.33, .10, [[.46, .30, -2.0]]),
+    ("Early Hook", "early left hook", .47, -.26, [[.28, .19, 1.72]]),
+    ("Reverse Hook", "early right hook", -.49, .27, [[.27, .19, -1.78]]),
+    ("Late Sweep", "late left sweep", -.07, .43, [[.68, .20, 1.88]]),
+    ("Late Return", "late right sweep", .08, -.45, [[.69, .20, -1.82]]),
+    ("Double S", "left-right S curve", .34, -.31, [[.28, .18, 1.55], [.71, .19, -1.68]]),
+    ("Reverse S", "right-left S curve", -.33, .32, [[.29, .18, -1.62], [.70, .19, 1.58]]),
+    ("Three-Beat Slalom", "three sweeping turns", .22, -.22, [[.24, .16, 1.32], [.51, .17, -1.64], [.77, .16, 1.34]]),
+    ("Mirror Slalom", "three reverse turns", -.23, .24, [[.24, .16, -1.38], [.51, .17, 1.68], [.76, .16, -1.29]]),
+    ("High Outside", "wide outside arc", .51, -.39, [[.45, .25, 1.73]]),
+    ("Low Outside", "wide reverse arc", -.52, .40, [[.45, .25, -1.78]]),
+    ("Left Stair", "two leftward bends", .32, -.05, [[.31, .17, 1.15], [.69, .20, 1.18]]),
+    ("Right Stair", "two rightward bends", -.34, .06, [[.31, .17, -1.19], [.68, .20, -1.20]]),
+    ("Crosswind Turn", "left bend then a late right", .41, -.39, [[.23, .17, 1.70], [.76, .16, -1.43]]),
+    ("Tailwind Turn", "right bend then a late left", -.42, .38, [[.23, .17, -1.68], [.76, .16, 1.48]]),
+    ("Long Swoop", "single deep left bend", -.12, -.28, [[.56, .29, 2.35]]),
+    ("Long Dive", "single deep right bend", .14, .30, [[.55, .29, -2.32]]),
+    ("Copper Chicane", "tight-spaced S curve", .35, .14, [[.37, .17, 1.82], [.62, .17, -1.82]]),
+    ("Silver Chicane", "tight-spaced reverse S", -.35, -.14, [[.37, .17, -1.80], [.62, .17, 1.82]]),
+    ("Summit Bend", "climbing left turn", .25, .36, [[.34, .21, 1.45], [.72, .20, -.82]]),
+    ("Valley Bend", "descending right turn", -.24, -.37, [[.34, .21, -1.48], [.72, .20, .85]]),
+    ("Far Side Run", "late left double bend", -.15, .32, [[.55, .18, .82], [.78, .17, 1.48]]),
+    ("Far Side Return", "late right double bend", .16, -.33, [[.55, .18, -.85], [.78, .17, -1.46]]),
+]
+# These sequences vary what happens as the ball travels forward. Length and
+# spacing are assigned separately so the geometry grows more playful over time.
+FEATURE_SEQUENCES = [
+    ("bumper", "pad", "cannon", "windmill", "loop"),
+    ("pad", "bridge", "bumper", "cannon", "windmill"),
+    ("loop", "bumper", "windmill", "cannon", "pad"),
+    ("cannon", "pad", "bumper", "loop", "bridge"),
+    ("windmill", "bumper", "loop", "pad", "cannon"),
+    ("bridge", "loop", "pad", "windmill", "bumper"),
+    ("bumper", "cannon", "windmill", "pad", "loop"),
+    ("pad", "loop", "bridge", "bumper", "cannon"),
+    ("windmill", "loop", "cannon", "bumper", "pad"),
+    ("loop", "pad", "bumper", "cannon", "windmill"),
+    ("cannon", "bumper", "windmill", "loop", "pad"),
+    ("cannon", "bridge", "loop", "pad", "bumper"),
+    ("bumper", "windmill", "pad", "bridge", "cannon"),
+    ("pad", "cannon", "loop", "bumper", "bridge"),
+    ("loop", "pad", "bumper", "windmill", "cannon"),
+    ("windmill", "pad", "cannon", "bridge", "loop"),
+    ("pad", "cannon", "windmill", "bumper", "loop"),
+    ("cannon", "bumper", "pad", "bridge", "windmill"),
+    ("bumper", "loop", "cannon", "windmill", "pad"),
+    ("pad", "windmill", "bumper", "loop", "bridge"),
+    ("loop", "cannon", "bridge", "pad", "windmill"),
+    ("windmill", "loop", "pad", "bumper", "bridge"),
+    ("windmill", "pad", "loop", "cannon", "bumper"),
+    ("cannon", "windmill", "bridge", "loop", "pad"),
 ]
 FEATURE_PLANS = [
     [],
@@ -43,15 +93,6 @@ FEATURE_PLANS = [
     [["bumper", .24, .70], ["bridge", .56, 0], ["pad", .82, 0]],
     [["cannon", .25, 0], ["windmill", .53, -1.15], ["pad", .81, 0]],
     [["bumper", .13, .75], ["pad", .35, 0], ["loop", .53, 0], ["bridge", .70, 0], ["cannon", .86, -.4]],
-    [["bumper", .15, -.65], ["loop", .36, 0], ["bridge", .58, 0], ["cannon", .82, .3]],
-    [["pad", .15, 0], ["windmill", .36, 1.12], ["bumper", .59, -.6], ["bridge", .82, 0]],
-    [["cannon", .14, 0], ["bumper", .34, .58], ["loop", .56, 0], ["windmill", .80, -1.1]],
-    [["windmill", .15, -1.15], ["pad", .36, 0], ["bridge", .57, 0], ["bumper", .80, .6]],
-    [["bumper", .14, .7], ["bridge", .35, 0], ["cannon", .59, 0], ["loop", .82, 0]],
-    [["loop", .15, 0], ["bumper", .36, -.6], ["pad", .58, 0], ["windmill", .82, 1.14]],
-    [["pad", .14, 0], ["bridge", .36, 0], ["loop", .59, 0], ["cannon", .82, 0]],
-    [["bumper", .14, -.7], ["cannon", .35, 0], ["windmill", .57, 1.1], ["bridge", .82, 0]],
-    [["windmill", .14, 1.12], ["loop", .36, 0], ["bridge", .59, 0], ["pad", .82, 0]],
 ]
 
 FIRST_TITLES = [
@@ -67,10 +108,6 @@ FIRST_SUBTITLES = [
     "Some shots call for a cannon.",
     "Every shortcut in the world, all at once.",
 ]
-ROUTE_LABELS = [
-    "open fairway", "left dogleg", "right dogleg", "double S", "reverse S",
-    "sweeping climb", "hooking turn", "switchback", "slalom", "high arc",
-]
 
 
 def hash_unit(a, b, c=0):
@@ -85,11 +122,15 @@ def build(level):
     chapter = (level - 1) // 10
     family = (level - 1) % 10
     early = level <= 7
-    opening, exit_slope, template_bends = ROUTES[family]
-    # Each ten-hole chapter has a planned scale/elevation, not an unbounded
-    # increase. Courses after the introductory seven have long readable runs.
+    route_index = (chapter * 7 + family * 13) % len(LATE_ROUTES)
+    if early:
+        opening, exit_slope, template_bends = ROUTES[family]
+    else:
+        route_name, route_label, opening, exit_slope, template_bends = LATE_ROUTES[route_index]
+    # Every route remains long enough for the largest five-prop sequence. The
+    # progression levels off rather than turning into an empty, giant green.
     span = ([8.18, 11.3, 14.2, 17.5, 20.3, 23.5, 26.4][level - 1]
-            if early else 25.0 + min(chapter, 12) * .72 + (family % 3) * .34)
+            if early else 25.2 + min(chapter, 14) * .59 + (route_index % 4) * .32)
     cup_z = (-2.35 if level == 1 else
              -2.35 + (hash_unit(chapter + 9, family + 5) - .5) * (1.2 if early else 4.4))
     if early:
@@ -97,12 +138,11 @@ def build(level):
         exit_slope *= .6
         bends = [[t, w, round(a * .53, 3)] for t, w, a in template_bends]
     else:
-        flip = -1 if chapter % 4 == 3 else 1
-        variation = .84 + hash_unit(chapter, family, 7) * .28
-        opening = round(opening * variation * flip, 3)
-        exit_slope = round(exit_slope * variation * flip, 3)
-        bends = [[round(t + (hash_unit(chapter, family, i) - .5) * .085, 3),
-                  w, round(a * variation * flip, 3)]
+        opening = round(opening * (.84 + hash_unit(chapter, family, 7) * .32), 3)
+        exit_slope = round(exit_slope * (.84 + hash_unit(chapter, family, 8) * .32), 3)
+        bends = [[round(t + (hash_unit(chapter, family, 9 + i) - .5) * .075, 3),
+                  round(w * (.91 + hash_unit(chapter, family, 15 + i) * .18), 3),
+                  round(a * (.84 + hash_unit(chapter, family, 22 + i) * .32), 3)]
                  for i, (t, w, a) in enumerate(template_bends)]
     c1 = round(START_Z + opening * span / 3, 3)
     c2 = round(cup_z - exit_slope * span / 3, 3)
@@ -114,37 +154,50 @@ def build(level):
     if level < 3:
         hills = []
     elif early:
-        hills = [[.42, .13, round(.17 + (level - 3) * .095, 3)]]
+        hills = [[.42, .21, round(.12 + (level - 3) * .03, 3)]]
         if level >= 6:
-            hills.append([.77, .11, .27])
+            hills.append([.77, .18, .11])
     else:
-        hill_t = .30 + hash_unit(chapter, family, 21) * .20
-        hills = [[round(hill_t, 3), .13, round(.38 + .045 * (chapter % 5), 3)]]
-        if family in (3, 4, 5, 7, 8, 9):
-            hills.append([round(.68 + hash_unit(chapter, family, 22) * .12, 3),
-                          .12, round(.21 + .05 * (chapter % 4), 3)])
+        hill_t = .27 + hash_unit(chapter, family, 31) * .18
+        hills = [[round(hill_t, 3),
+                  round(.18 + hash_unit(chapter, family, 32) * .06, 3),
+                  round(.13 + hash_unit(chapter, family, 33) * .12, 3)]]
+        if level > 20 or (chapter + family) % 3 == 0:
+            hills.append([round(.62 + hash_unit(chapter, family, 34) * .16, 3),
+                          round(.18 + hash_unit(chapter, family, 35) * .07, 3),
+                          round(.12 + hash_unit(chapter, family, 36) * .11, 3)])
+        if level > 100 and (chapter + family) % 3 == 1:
+            hills.append([round(.47 + hash_unit(chapter, family, 37) * .06, 3),
+                          .17, round(.07 + hash_unit(chapter, family, 38) * .07, 3)])
     if early:
         specs = FEATURE_PLANS[level - 1]
     else:
-        plan = FEATURE_PLANS[7 + (chapter * 7 + family * 3) % 9]
-        # A fifth prop on some later holes forms a brisk, spaced sequence.
-        specs = [list(item) for item in plan]
-        if level > 80 and family in (0, 4, 7) and all(abs(item[1] - .965) > .13 for item in specs):
-            specs.append(["bumper", .965, .55 if chapter % 2 else -.55])
+        plan = FEATURE_SEQUENCES[(chapter * 17 + family * 7) % len(FEATURE_SEQUENCES)]
+        count = (3 if level <= 20 else 4 if level <= 100 else
+                 4 + ((chapter + family) % 2))
+        positions = {3: (.23, .51, .78), 4: (.17, .38, .60, .81),
+                     5: (.13, .30, .47, .64, .81)}[count]
+        specs = []
+        for i, kind in enumerate(plan[:count]):
+            sign = -1 if hash_unit(level, i, 40) < .5 else 1
+            unit = hash_unit(level, i, 41)
+            across = (sign * (.48 + unit * .27) if kind == "bumper" else
+                      sign * (.92 + unit * .22) if kind == "windmill" else
+                      (unit - .5) * .24 if kind in ("pad", "cannon") else 0)
+            specs.append([kind, positions[i], across])
     features = []
     for i, (kind, t, across) in enumerate(specs):
-        side = -1 if not early and (chapter + family) % 2 else 1
-        shifted_t = t if early else round(t + (hash_unit(chapter, family, 40 + i) - .5) * .025, 3)
+        shifted_t = t if early else round(t + (hash_unit(chapter, family, 50 + i) - .5) * .028, 3)
         features.append({
-            "kind": kind, "t": shifted_t, "across": round(across * side, 3),
+            "kind": kind, "t": shifted_t, "across": round(across, 3),
             "phase": round(hash_unit(level, i, 53) * 6.283185, 4),
             "move": round(.22 + hash_unit(level, i, 54) * .12, 3) if kind == "bumper" else 0,
             "rate": round(.8 + hash_unit(level, i, 55) * .5, 3),
         })
     bridge = next((f for f in features if f["kind"] == "bridge"), None)
     river_t = bridge["t"] if bridge else None
-    title = FIRST_TITLES[level - 1] if early else f"{CHAPTERS[chapter]} · {SUFFIXES[family]}"
-    subtitle = FIRST_SUBTITLES[level - 1] if early else f"A new {ROUTE_LABELS[family]} awaits. Take the shot."
+    title = FIRST_TITLES[level - 1] if early else f"{CHAPTERS[chapter]} · {route_name}"
+    subtitle = FIRST_SUBTITLES[level - 1] if early else f"A new {route_label} awaits. Take the shot."
     return {
         "number": level, "title": title, "subtitle": subtitle,
         "span": round(span, 3), "cupZ": round(cup_z, 3), "route": route,
@@ -155,6 +208,39 @@ def build(level):
 def main():
     courses = [build(level) for level in range(1, 251)]
     assert len({c["title"] for c in courses}) == 250
+    # These checks keep future catalog edits from drifting back to a handful
+    # of repeated silhouettes, crowded props, or steep fairway grades.
+    route_shapes = set()
+    prop_orders = set()
+    for course in courses:
+        span, route = course["span"], course["route"]
+        start_z, cup_z = START_Z, course["cupZ"]
+        prop_orders.add(tuple(f["kind"] for f in course["features"]))
+        features = course["features"]
+        assert all((b["t"] - a["t"]) * span > 3.0
+                   for a, b in zip(features, features[1:])), course["number"]
+        assert course["riverT"] == next(
+            (f["t"] for f in features if f["kind"] == "bridge"), None)
+
+        def profile(t):
+            u = 1 - t
+            z = (u**3 * start_z + 3 * u * u * t * route["c1"] +
+                 3 * u * t * t * route["c2"] + t**3 * cup_z)
+            z += math.sin(math.pi * t)**2 * sum(
+                a * math.exp(-((t - center) / width)**2)
+                for center, width, a in route["bends"])
+            y = math.sin(math.pi * t)**2 * sum(
+                height * math.exp(-((t - center) / width)**2)
+                for center, width, height in course["hills"])
+            return z, y
+
+        route_shapes.add(tuple(round(profile(t)[0] - (start_z + (cup_z - start_z) * t), 1)
+                               for t in (.2, .4, .6, .8)))
+        heights = [profile(i / 200)[1] for i in range(201)]
+        assert max(heights) < .5, course["number"]
+        assert max(abs(b - a) * 200 / span for a, b in zip(heights, heights[1:])) < .08, course["number"]
+    assert len(route_shapes) >= 220, len(route_shapes)
+    assert len(prop_orders) >= 40, len(prop_orders)
     payload = "[\n" + ",\n".join(
         "  " + json.dumps(course, separators=(",", ":"), ensure_ascii=False)
         for course in courses

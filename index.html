@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="./tutorial.css" />
     <script src="./gear-progression.js" defer></script>
     <script src="./ball-upgrades.js" defer></script>
-    <script src="./script.js" defer></script>
+    <script src="./script.js?economy=2" defer></script>
     <script src="./shop-tutorial.js" defer></script>
   </head>
   <body>
@@ -67,7 +67,7 @@
             </div>
             <div class="xp-wallet" aria-live="polite">
               <span class="wallet-spark" aria-hidden="true">✳</span>
-              <div><div class="wallet-label">YOUR TOTAL XP</div><div class="wallet-value" id="wallet-xp">0 <span>XP</span></div></div>
+              <div><div class="wallet-label">XP BALANCE</div><div class="wallet-value" id="wallet-xp">0 <span>XP</span></div></div>
               <span class="wallet-arrow" aria-hidden="true">↗</span>
             </div>
           </section>
@@ -123,13 +123,13 @@
           <div class="cart-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">900 XP</strong></div><div class="claim-ball-choices" id="claim-ball-choices" aria-label="Choose a ball for your cart"></div></div>
         </div>
         <div class="claim-receipt" aria-label="Unlock summary">
-          <span>TOTAL XP <strong id="claim-balance">0 XP</strong></span>
-          <span>UNLOCK TARGET <strong id="claim-needed">1,000 XP</strong></span>
+          <span>XP BALANCE <strong id="claim-balance">0 XP</strong></span>
+          <span>CART TOTAL <strong id="claim-needed">1,000 XP</strong></span>
           <span>XP AFTER <strong id="claim-after">0 XP</strong></span>
         </div>
         <div class="claim-actions">
           <button class="claim-back" id="claim-back" type="button">Keep browsing</button>
-          <button class="claim-final" id="claim-confirm" type="button"><span id="claim-confirm-text">Purchase club</span><span class="xp-cta-price" id="claim-confirm-price">1,000 XP target</span><span aria-hidden="true">↗</span></button>
+          <button class="claim-final" id="claim-confirm" type="button"><span id="claim-confirm-text">Purchase club</span><span class="xp-cta-price" id="claim-confirm-price">1,000 XP</span><span aria-hidden="true">↗</span></button>
           <button class="claim-final" id="claim-done" type="button" hidden>Play a hole <span aria-hidden="true">↗</span></button>
         </div>
         <div class="claim-announcement" id="claim-announcement" role="status" aria-live="polite"></div>
@@ -174,9 +174,9 @@
           <div class="tutorial-steps">
             <article class="tutorial-step"><span class="tutorial-step-number">01</span><span class="tutorial-step-icon" aria-hidden="true">↗</span><h3>Pull back. Aim.</h3><p>Click or touch the course. Hold, pull back, point your club, then release.</p></article>
             <article class="tutorial-step"><span class="tutorial-step-number">02</span><span class="tutorial-step-icon" aria-hidden="true">〰</span><h3>Watch the chaos.</h3><p>Your ball starts on your line. Wind, walls, and wild gadgets guide it home.</p></article>
-            <article class="tutorial-step"><span class="tutorial-step-number">03</span><span class="tutorial-step-icon" aria-hidden="true">✦</span><h3>Win. Upgrade.</h3><p>Earn lifetime XP. In the Pro Shop, tap <strong>Add to cart</strong>, then <strong>Purchase</strong> a club or ball.</p></article>
+            <article class="tutorial-step"><span class="tutorial-step-number">03</span><span class="tutorial-step-icon" aria-hidden="true">✦</span><h3>Win. Upgrade.</h3><p>Earn XP. In the Pro Shop, tap <strong>Add to cart</strong>, then <strong>Purchase</strong> a club or ball.</p></article>
           </div>
-          <div class="tutorial-reassurance"><strong>XP ONLY GOES UP</strong><span>Your gear has unlock targets. Your total stays yours.</span></div>
+          <div class="tutorial-reassurance"><strong>EARN XP. BUY GEAR.</strong><span>Bigger holes earn more XP. Save it or spend it on new gear.</span></div>
         </div>
         <div class="tutorial-actions"><button class="tutorial-skip" id="tutorial-skip" type="button">Explore the shop</button><button class="tutorial-start" id="tutorial-start" type="button">PLAY A HOLE <span aria-hidden="true">↗</span></button></div>
       </section>
