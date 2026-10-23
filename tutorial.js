@@ -5,7 +5,6 @@
   const title = document.getElementById('tutorial-title');
   const replay = document.getElementById('tutorial-open');
   const start = document.getElementById('tutorial-start');
-  const keyboardShot = document.getElementById('keyboard-shot');
   const celebration = document.getElementById('celebration');
   const nextHole = document.getElementById('next-hole');
   let open = false;
@@ -43,7 +42,7 @@
     game.inert = wasGameInert;
     open = false;
     markTutorialSeen();
-    const target = !celebration.hidden ? nextHole : returnFocus?.isConnected ? returnFocus : keyboardShot;
+    const target = !celebration.hidden ? nextHole : returnFocus?.isConnected ? returnFocus : replay;
     returnFocus = null;
     if (!target.disabled) target.focus();
   }

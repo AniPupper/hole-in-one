@@ -11,6 +11,7 @@
   label { display: block; margin: 24px 0 8px; }
   input { box-sizing: border-box; width: 100%; padding: 12px; border: 2px solid #76967c; border-radius: 10px; font: inherit; }
   button { width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px; background: #b45631; color: white; font: 800 18px system-ui, sans-serif; cursor: pointer; }
+  #reset-starter { background: #15392d; }
   small { display: block; margin-top: 18px; font-size: 13px; font-weight: 400; }
 </style>
 <main>
@@ -21,6 +22,8 @@
     <input id="tier" type="number" min="1" max="1000" value="7" required>
     <button type="submit">Open test shop ↗</button>
   </form>
+  <button id="reset-starter" type="button">Reset to starter gear + Hole 1 ↗</button>
+  <small>Reset affects this local browser only. Reload any other open local game tabs afterward.</small>
   <small>This seeds test XP and prior unlocks on this browser origin so the selected tier is available. Do not use it with your saved file:// game.</small>
 </main>
 <script src="../gear-progression.js"></script>
@@ -46,5 +49,17 @@
     localStorage.setItem(key, JSON.stringify(progress));
     location.href = '../index.html';
   });
+  function resetStarter() {
+    localStorage.setItem('hole-in-one-progress-v1', JSON.stringify({
+      xp: 0, holeCount: 0,
+      equipped: 'rookie', owned: ['rookie'], claimed: [],
+      equippedBall: 'classic', ownedBalls: ['classic'], claimedBallTiers: []
+    }));
+    localStorage.setItem('hole-in-one-course-v1', JSON.stringify({ level: 1, completed: false }));
+    localStorage.removeItem('hole-in-one-tutorial-seen-v1');
+    location.href = '../index.html';
+  }
+  document.getElementById('reset-starter').addEventListener('click', resetStarter);
+  if (location.hostname === 'localhost' && new URLSearchParams(location.search).get('reset') === 'starter') resetStarter();
 </script>
 </html>

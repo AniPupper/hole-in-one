@@ -10,9 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./tutorial.css" />
     <script src="./gear-progression.js" defer></script>
     <script src="./ball-upgrades.js" defer></script>
     <script src="./script.js" defer></script>
+    <script src="./shop-tutorial.js" defer></script>
   </head>
   <body>
     <div class="app-shell">
@@ -47,13 +49,13 @@
           <div class="equipped-ball"><span class="equipped-ball-dot" id="equipped-ball-dot"></span><span id="equipped-ball-name">Classic White</span></div>
           <a class="side-play" id="side-play" href="./game.html"><span>Play a hole</span><span aria-hidden="true">↗</span></a>
         </div>
-        <div class="side-bottom"><span class="live-dot"></span><span id="hole-count">4 perfect shots so far</span></div>
+        <div class="side-bottom"><span class="live-dot"></span><span id="hole-count">0 perfect shots so far</span></div>
       </aside>
 
       <main class="main-content" id="shop">
         <header class="topbar">
           <div class="breadcrumb"><span>THE CLUBHOUSE</span><span class="breadcrumb-slash">/</span><strong>PRO SHOP</strong></div>
-          <div class="top-actions"><span class="season-tag"><span class="season-dot"></span> SEASON 01</span><div class="avatar" aria-label="Player profile">HI<span class="avatar-star">✦</span></div></div>
+          <a class="topbar-play" href="./game.html">Play a hole <span aria-hidden="true">↗</span></a>
         </header>
 
         <div class="content-wrap">
@@ -65,15 +67,15 @@
             </div>
             <div class="xp-wallet" aria-live="polite">
               <span class="wallet-spark" aria-hidden="true">✳</span>
-              <div><div class="wallet-label">YOUR TOTAL XP</div><div class="wallet-value" id="wallet-xp">1,240 <span>XP</span></div></div>
+              <div><div class="wallet-label">YOUR TOTAL XP</div><div class="wallet-value" id="wallet-xp">0 <span>XP</span></div></div>
               <span class="wallet-arrow" aria-hidden="true">↗</span>
             </div>
           </section>
 
-          <section class="reward-banner" aria-label="Club reward progress">
+          <section class="reward-banner" aria-label="Gear reward progress">
             <div class="reward-icon" aria-hidden="true">✦</div>
-              <div class="reward-copy"><div class="reward-kicker" id="reward-kicker">TIER 01</div><div class="reward-title" id="reward-title">New clubs ready.</div></div>
-            <div class="reward-meter"><div class="meter-label"><span class="xp-inline" id="meter-caption">1,240 / 1,000 XP</span><strong id="meter-status">READY TO UNLOCK</strong></div><div class="meter-track"><span id="meter-fill"></span></div></div>
+              <div class="reward-copy"><div class="reward-kicker" id="reward-kicker">TIER 01</div><div class="reward-title" id="reward-title">1,000 XP to go.</div></div>
+            <div class="reward-meter"><div class="meter-label"><span class="xp-inline" id="meter-caption">0 / 1,000 XP</span><strong id="meter-status">KEEP SWINGING</strong></div><div class="meter-track"><span id="meter-fill"></span></div></div>
           </section>
 
           <section class="club-section" aria-labelledby="club-heading">
@@ -121,9 +123,9 @@
           <div class="cart-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">900 XP</strong></div><div class="claim-ball-choices" id="claim-ball-choices" aria-label="Choose a ball for your cart"></div></div>
         </div>
         <div class="claim-receipt" aria-label="Unlock summary">
-          <span>TOTAL XP <strong id="claim-balance">1,240 XP</strong></span>
+          <span>TOTAL XP <strong id="claim-balance">0 XP</strong></span>
           <span>UNLOCK TARGET <strong id="claim-needed">1,000 XP</strong></span>
-          <span>XP AFTER <strong id="claim-after">1,240 XP</strong></span>
+          <span>XP AFTER <strong id="claim-after">0 XP</strong></span>
         </div>
         <div class="claim-actions">
           <button class="claim-back" id="claim-back" type="button">Keep browsing</button>
@@ -136,7 +138,7 @@
     <div class="modal-backdrop" id="practice-modal" hidden>
       <section class="practice-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-title">
         <button class="modal-close" id="modal-close" type="button" aria-label="Close">×</button>
-        <div class="practice-topline">PRACTICE GREEN <span>•</span> HOLE <span id="practice-hole-number">05</span></div>
+        <div class="practice-topline">PRACTICE GREEN <span>•</span> HOLE <span id="practice-hole-number">01</span></div>
         <h2 id="practice-title">One shot. One sure thing.</h2>
         <p class="practice-intro">Press the ball, pull back, and release. Somehow, it always finds the cup.</p>
         <div class="practice-course" id="practice-course">
@@ -158,6 +160,25 @@
         <h2 id="collection-title">Your gear so far.</h2>
         <p class="practice-intro">A little history of very lucky swings.</p>
         <div class="collection-list" id="collection-list"></div>
+      </section>
+    </div>
+    <div class="tutorial-overlay" id="tutorial-overlay" hidden>
+      <section class="tutorial-panel" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-lede">
+        <div class="tutorial-scroll">
+          <div class="tutorial-topline"><span>WELCOME TO THE STREAK</span><button class="tutorial-close" id="tutorial-close" type="button" aria-label="Close tutorial">×</button></div>
+          <div class="tutorial-hero">
+            <span class="tutorial-spark" aria-hidden="true">✳</span>
+            <h2 id="tutorial-title" tabindex="-1">Every swing <em>wins.</em></h2>
+            <p id="tutorial-lede">Your first shot always finds the cup. The fun is watching how.</p>
+          </div>
+          <div class="tutorial-steps">
+            <article class="tutorial-step"><span class="tutorial-step-number">01</span><span class="tutorial-step-icon" aria-hidden="true">↗</span><h3>Pull back. Aim.</h3><p>Click or touch the course. Hold, pull back, point your club, then release.</p></article>
+            <article class="tutorial-step"><span class="tutorial-step-number">02</span><span class="tutorial-step-icon" aria-hidden="true">〰</span><h3>Watch the chaos.</h3><p>Your ball starts on your line. Wind, walls, and wild gadgets guide it home.</p></article>
+            <article class="tutorial-step"><span class="tutorial-step-number">03</span><span class="tutorial-step-icon" aria-hidden="true">✦</span><h3>Win. Upgrade.</h3><p>Earn lifetime XP. In the Pro Shop, tap <strong>Add to cart</strong>, then <strong>Purchase</strong> a club or ball.</p></article>
+          </div>
+          <div class="tutorial-reassurance"><strong>XP ONLY GOES UP</strong><span>Your gear has unlock targets. Your total stays yours.</span></div>
+        </div>
+        <div class="tutorial-actions"><button class="tutorial-skip" id="tutorial-skip" type="button">Explore the shop</button><button class="tutorial-start" id="tutorial-start" type="button">PLAY A HOLE <span aria-hidden="true">↗</span></button></div>
       </section>
     </div>
   </body>

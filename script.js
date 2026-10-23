@@ -45,7 +45,7 @@ if (progression) {
 }
 const tierLabel = (index) => progression?.label(index + 1) || ['FIRST DROP', 'BOOSTED', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC'][index] || 'NEW DROP';
 
-const initialProgress = { xp: 1240, holeCount: 4, equipped: 'rookie', claimed: [], owned: ['rookie'] };
+const initialProgress = { xp: 0, holeCount: 0, equipped: 'rookie', claimed: [], owned: ['rookie'] };
 let progress = loadProgress();
 let selectedId = null;
 let selectedBallId = null;
@@ -72,7 +72,23 @@ function loadProgress() {
   return window.BallUpgrades.normalize({ ...initialProgress, claimed: [], owned: ['rookie'] });
 }
 
-function saveProgress() {
+function saveProgress({ clubChanged = false, ballChanged = false } = {}) {
+  let latest = progress;
+  try {
+    if (localStorage.getItem(STORAGE_KEY) !== null) latest = loadProgress();
+  } catch (_) { /* Keep in-memory progress when browser storage is unavailable. */ }
+  progress = {
+    ...latest,
+    ...progress,
+    xp: Math.max(latest.xp, progress.xp),
+    holeCount: Math.max(latest.holeCount, progress.holeCount),
+    equipped: clubChanged ? progress.equipped : latest.equipped,
+    equippedBall: ballChanged ? progress.equippedBall : latest.equippedBall,
+    claimed: [...new Set([...latest.claimed, ...progress.claimed])],
+    owned: [...new Set([...latest.owned, ...progress.owned])],
+    claimedBallTiers: [...new Set([...latest.claimedBallTiers, ...progress.claimedBallTiers])],
+    ownedBalls: [...new Set([...latest.ownedBalls, ...progress.ownedBalls])]
+  };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (_) { /* Keep this session playable without storage. */ }
 }
 
@@ -308,12 +324,22 @@ function renderCart() {
 document.getElementById('claim-button').addEventListener('click', () => openClaimCart(selectedId));
 
 document.getElementById('claim-confirm').addEventListener('click', () => {
+  const latest = loadProgress();
+  progress.xp = Math.max(progress.xp, latest.xp);
+  progress.holeCount = Math.max(progress.holeCount, latest.holeCount);
+  progress.claimed = [...new Set([...progress.claimed, ...latest.claimed])];
+  progress.claimedBallTiers = [...new Set([...progress.claimedBallTiers, ...latest.claimedBallTiers])];
   const clubTierIndex = currentTierIndex();
   const ballTierIndex = currentBallTierIndex();
   const validClub = claimSelectedId && !allClaimed() && tiers[clubTierIndex].choices.includes(claimSelectedId);
   const validBall = cartBallId && !allBallsClaimed() && ballTiers[ballTierIndex].choices.includes(cartBallId);
   const needed = Math.max(validClub ? tiers[clubTierIndex].threshold : 0, validBall ? ballTiers[ballTierIndex].threshold : 0);
-  if ((!validClub && !validBall) || progress.xp < needed) return;
+  if ((claimSelectedId && !validClub) || (cartBallId && !validBall) || (!validClub && !validBall) || progress.xp < needed) {
+    hideModal('claim-modal');
+    render();
+    showToast('Your cart refreshed. Pick the next drop.');
+    return;
+  }
   const chosenClub = validClub ? clubs[claimSelectedId] : null;
   const chosenBall = validBall ? balls[cartBallId] : null;
   if (validClub) {
@@ -326,7 +352,7 @@ document.getElementById('claim-confirm').addEventListener('click', () => {
     progress.claimedBallTiers.push(ballTierIndex);
     progress.ownedBalls.push(cartBallId);
   }
-  saveProgress();
+  saveProgress({ clubChanged: !!validClub, ballChanged: !!validBall });
   render();
 
   const dialog = document.querySelector('#claim-modal .claim-dialog');
@@ -497,6 +523,9 @@ function takeShot() {
     activeShotAnimation = null;
     ball.style.opacity = '0';
     animation.cancel();
+    const latest = loadProgress();
+    progress.xp = Math.max(progress.xp, latest.xp);
+    progress.holeCount = Math.max(progress.holeCount, latest.holeCount);
     const earned = 350 + Math.min(200, progress.holeCount * 25);
     progress.xp += earned;
     progress.holeCount += 1;

@@ -9,13 +9,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./game.css" />
-  <link rel="stylesheet" href="./tutorial.css" />
+  <link rel="stylesheet" href="./game.css?controls=3" />
+  <link rel="stylesheet" href="./tutorial.css?controls=3" />
   <script src="./gear-progression.js" defer></script>
   <script src="./ball-upgrades.js" defer></script>
   <script src="./course-blueprints.js" defer></script>
-  <script src="./game.js" defer></script>
-  <script src="./tutorial.js" defer></script>
+  <script src="./game.js?controls=3" defer></script>
+  <script src="./tutorial.js?controls=3" defer></script>
 </head>
 <body>
   <main class="game-shell">
@@ -29,7 +29,7 @@
       </a>
       <div class="header-center"><span class="live-dot"></span> THE WORLD'S LUCKIEST GOLF GAME</div>
       <div class="header-actions">
-        <div class="xp-pill" aria-label="Lifetime total XP"><span class="xp-star">✦</span><div class="xp-display"><span class="xp-label">TOTAL XP</span><strong id="xp-total">1,240</strong></div></div>
+        <div class="xp-pill" aria-label="Lifetime total XP"><span class="xp-star">✦</span><div class="xp-display"><span class="xp-label">TOTAL XP</span><strong id="xp-total">0</strong></div></div>
         <a class="shop-button" href="index.html"><span class="shop-symbol">✳</span> PRO SHOP <span class="shop-arrow">↗</span></a>
       </div>
     </header>
@@ -45,7 +45,7 @@
     <aside class="game-stats" aria-label="Your equipment and conditions">
       <div class="stat-card club-card"><div class="stat-icon">✦</div><div><span class="stat-kicker">IN YOUR BAG</span><strong id="club-name">The Rookie</strong><span class="ball-name" id="ball-name">Classic ball</span></div><span class="stat-arrow">↗</span></div>
       <div class="stat-card weather-card"><div class="stat-icon weather-icon" id="weather-icon">☀</div><div><span class="stat-kicker">COURSE CONDITIONS</span><strong id="weather-name">Calm & sunny</strong></div></div>
-      <div class="streak-card"><span class="streak-icon">✳</span><div><strong id="streak-count">4</strong><span>HOLES IN ONE</span></div></div>
+      <div class="streak-card"><span class="streak-icon">✳</span><div><strong id="streak-count">0</strong><span>HOLES IN ONE</span></div></div>
     </aside>
 
     <div class="course-badge"><span class="badge-pip"></span> MINIATURE WORLD NO. <span id="world-number">01</span></div>
@@ -58,7 +58,6 @@
       <div class="shot-bottom"><span>CLICK / TOUCH + PULL TO AIM</span><span>RELEASE TO SWING <b>↗</b></span></div>
       <div class="course-utility" aria-label="Course controls">
         <button class="tutorial-replay" id="tutorial-open" type="button" aria-haspopup="dialog" aria-controls="tutorial-overlay"><span aria-hidden="true">?</span> HOW TO PLAY</button>
-        <button class="keyboard-shot" id="keyboard-shot" type="button">SWING NOW <span aria-hidden="true">↗</span></button>
       </div>
     </div>
 

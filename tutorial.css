@@ -1,12 +1,9 @@
-.course-utility{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:11px}
+.course-utility{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:11px}
 .course-utility button{min-height:44px;font:800 13px/1 'DM Sans',sans-serif;letter-spacing:.3px;white-space:nowrap;cursor:pointer;transition:transform .2s,box-shadow .2s}
 .course-utility button:hover{transform:translateY(-2px)}
 .course-utility button:focus-visible,.tutorial-overlay button:focus-visible{outline:3px solid #ffdb67;outline-offset:3px}
 .tutorial-replay{display:flex;align-items:center;gap:8px;border:2px solid #d88759;border-radius:999px;background:#fff9eb;color:#743f25;padding:0 15px;box-shadow:0 4px 0 #ad815c,0 12px 22px #3c513a33}
 .tutorial-replay span{width:23px;height:23px;display:grid;place-items:center;border-radius:50%;background:#bd592e;color:#fff;font:900 18px/1 Outfit,sans-serif}
-.course-utility .keyboard-shot{position:static;display:flex;align-items:center;justify-content:center;height:44px;min-height:44px;padding:0 15px;background:#b95329;border:2px solid #f9c78b;border-radius:999px;color:#fff8ec;box-shadow:0 4px 0 #773d29,0 12px 22px #8542274d;font-size:13px;letter-spacing:.3px}
-.course-utility .keyboard-shot span{font-size:17px;margin-left:8px}
-.course-utility .keyboard-shot:disabled{opacity:.6;box-shadow:0 2px 0 #773d29;cursor:default}
 
 .tutorial-overlay[hidden]{display:none}
 .tutorial-overlay{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:14px;background:#092b23bd;backdrop-filter:blur(10px)}
@@ -47,7 +44,6 @@
   .course-utility{margin-top:3px;gap:4px}
   .course-utility button{height:44px;min-height:44px;font-size:13px}
   .tutorial-replay{padding:0 6px}
-  .course-utility .keyboard-shot{height:44px;min-height:44px;padding:0 10px;font-size:13px}
   .tutorial-overlay{padding:8px}
   .tutorial-panel{max-height:calc(100dvh - 16px);border-radius:19px}
   .tutorial-scroll{padding:18px 18px 20px}
@@ -68,7 +64,7 @@
 }
 @media(max-width:360px){
   .tutorial-replay span{width:20px;height:20px;font-size:16px}
-  .course-utility button,.course-utility .keyboard-shot{font-size:13px;letter-spacing:0}
+  .course-utility button{font-size:13px;letter-spacing:0}
   .tutorial-hero h2{font-size:38px}
   .tutorial-actions{gap:8px}
   .tutorial-actions button{padding:10px 11px}

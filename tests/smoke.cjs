@@ -13,7 +13,7 @@ const progressKey = 'hole-in-one-progress-v1';
 const fullSweep = process.argv.includes('--full');
 const store = new Map();
 
-function host() {
+function host(backingStore = store) {
   const elements = new Map();
   const gradient = { addColorStop() {} };
   const canvas = new Proxy({
@@ -44,16 +44,19 @@ function host() {
     addEventListener() {}
   };
   const window = {
-    devicePixelRatio: 1, addEventListener() {},
+    devicePixelRatio: 1, handlers: {},
+    addEventListener(event, handler) { this.handlers[event] = handler; },
     matchMedia() { return { matches: true }; },
     location: { href: '' }
   };
   const context = vm.createContext({
     document, window, Math, console,
     localStorage: {
-      getItem(key) { return store.get(key) ?? null; },
-      setItem(key, value) { store.set(key, String(value)); }
+      getItem(key) { return backingStore.get(key) ?? null; },
+      setItem(key, value) { backingStore.set(key, String(value)); },
+      removeItem(key) { backingStore.delete(key); }
     },
+    location: window.location,
     performance: { now: () => 1000 },
     requestAnimationFrame() {}, setTimeout() { return 1; }, clearTimeout() {}
   });
@@ -96,7 +99,8 @@ function checkShop() {
   const shop = host();
   shop.load('script.js');
   const catalog = checkCatalog(shop);
-  assert.equal(shop.run('progress.xp'), 1240);
+  assert.equal(shop.run('progress.xp'), 0, 'new players should start with no XP');
+  shop.run('progress.xp = 1240; saveProgress()');
   shop.run("openClaimCart('meteor', 'sunburst')");
   assert.equal(shop.run("document.getElementById('claim-needed').textContent"), '1,000 XP');
   assert.equal(shop.run("document.getElementById('claim-confirm-text').textContent"), 'Purchase both');
@@ -170,7 +174,151 @@ function checkShop() {
   return catalog;
 }
 
+function checkStaleShopSave() {
+  const isolated = new Map();
+  isolated.set(progressKey, JSON.stringify({
+    xp: 2600, holeCount: 7, equipped: 'meteor', equippedBall: 'sunburst',
+    owned: ['rookie', 'meteor'], ownedBalls: ['classic', 'sunburst'],
+    claimed: [0], claimedBallTiers: [0]
+  }));
+  const stale = host(isolated); stale.load('script.js');
+  stale.run("openClaimCart('orbit', null)");
+  assert.equal(stale.run('claimSelectedId'), 'orbit');
+  // Another tab wins a ball, equips it, and earns XP while this cart is open.
+  const newer = JSON.parse(isolated.get(progressKey));
+  newer.xp = 5200; newer.holeCount = 9; newer.equippedBall = 'ember';
+  newer.ownedBalls.push('ember'); newer.claimedBallTiers.push(1);
+  isolated.set(progressKey, JSON.stringify(newer));
+  stale.elements.get('claim-confirm').handlers.click();
+  const saved = JSON.parse(isolated.get(progressKey));
+  assert.equal(saved.xp, 5200, 'stale shop tab erased newly earned XP');
+  assert.equal(saved.holeCount, 9, 'stale shop tab erased newer shot count');
+  assert.equal(saved.equipped, 'orbit', 'purchased club was not equipped');
+  assert.equal(saved.equippedBall, 'ember', 'club-only purchase overwrote newer ball equipment');
+  assert.ok(saved.ownedBalls.includes('ember') && saved.claimedBallTiers.includes(1),
+    'stale shop tab erased a newer ball purchase');
+
+  const inverseStore = new Map([[progressKey, JSON.stringify({
+    xp: 2600, holeCount: 7, equipped: 'meteor', equippedBall: 'sunburst',
+    owned: ['rookie', 'meteor'], ownedBalls: ['classic', 'sunburst'],
+    claimed: [0], claimedBallTiers: [0]
+  })]]);
+  const staleBallCart = host(inverseStore); staleBallCart.load('script.js');
+  staleBallCart.run("openClaimCart(null, 'ember')");
+  const newerClub = JSON.parse(inverseStore.get(progressKey));
+  newerClub.xp = 5200; newerClub.holeCount = 10; newerClub.equipped = 'orbit';
+  newerClub.owned.push('orbit'); newerClub.claimed.push(1);
+  inverseStore.set(progressKey, JSON.stringify(newerClub));
+  staleBallCart.elements.get('claim-confirm').handlers.click();
+  const savedBallCart = JSON.parse(inverseStore.get(progressKey));
+  assert.equal(savedBallCart.xp, 5200);
+  assert.equal(savedBallCart.holeCount, 10);
+  assert.equal(savedBallCart.equippedBall, 'ember', 'purchased ball was not equipped');
+  assert.equal(savedBallCart.equipped, 'orbit', 'ball-only purchase overwrote newer club equipment');
+  assert.ok(savedBallCart.owned.includes('orbit') && savedBallCart.claimed.includes(1));
+}
+
+function checkLocalReset() {
+  const isolated = new Map([
+    [progressKey, JSON.stringify({ xp: 999999, holeCount: 99, equipped: 'meteor',
+      equippedBall: 'sunburst', owned: ['rookie', 'meteor'], ownedBalls: ['classic', 'sunburst'],
+      claimed: [0, 1], claimedBallTiers: [0, 1] })],
+    ['hole-in-one-course-v1', JSON.stringify({ level: 250, completed: true })],
+    ['hole-in-one-tutorial-seen-v1', 'true']
+  ]);
+  const preview = host(isolated);
+  const source = fs.readFileSync(path.join(root, 'tests/preview-shop.html'), 'utf8');
+  const inline = source.match(/<script>\s*([\s\S]*?)\s*<\/script>/);
+  assert.ok(inline, 'shop preview reset script is missing');
+  vm.runInContext(inline[1], preview.context, { filename: 'tests/preview-shop.html:inline' });
+  preview.elements.get('reset-starter').handlers.click();
+  const progress = JSON.parse(isolated.get(progressKey));
+  assert.equal(progress.xp, 0); assert.equal(progress.holeCount, 0);
+  assert.equal(progress.equipped, 'rookie'); assert.equal(progress.equippedBall, 'classic');
+  assert.deepEqual(progress.claimed, []); assert.deepEqual(progress.claimedBallTiers, []);
+  assert.deepEqual(JSON.parse(isolated.get('hole-in-one-course-v1')), { level: 1, completed: false });
+  assert.equal(isolated.has('hole-in-one-tutorial-seen-v1'), false);
+  assert.equal(preview.context.location.href, '../index.html');
+}
+
+function checkCupRegressions() {
+  const game = host(new Map()); game.load('game.js');
+  const turn = game.run(`(() => {
+    courseState={level:1,completed:false};setLayout(1);phase='ready';ball={...START};
+    startShot(50,{x:160,y:0});
+    ball={x:CUP.x-1.5,z:CUP.z+.3,y:0};
+    ball.y=layout.heightAt(ball.x,ball.z)+BALL_RADIUS;
+    shot.velocity={x:0,y:0,z:2};shot.spinSign=0;shot.elapsed=0;
+    const v=shot.velocity, dt=1/120, toCup=cupDirection(), dist=toCup.distance;
+    const bowl=Math.max(0,1-dist/3.3), near=1/(1+Math.pow(dist/1.05,4));
+    const slopeForce=bowl*(.4+2.7*bowl),drag=(.22+2.3*near)*shot.ballProfile.dragMultiplier;
+    const ground=layout.heightAt(ball.x,ball.z);
+    const ax=toCup.x*slopeForce-v.x*drag-(layout.heightAt(ball.x+.03,ball.z)-ground)/.03*3.8;
+    const az=toCup.z*slopeForce-v.z*drag-(layout.heightAt(ball.x,ball.z+.03)-ground)/.03*3.8;
+    const expected=Math.hypot(v.x+ax*dt,v.z+az*dt);
+    const preAngle=Math.atan2(v.z+az*dt,v.x+ax*dt);
+    const target=Math.atan2(toCup.z,toCup.x);
+    const preError=Math.abs(Math.atan2(Math.sin(target-preAngle),Math.cos(target-preAngle)));
+    stepPhysics(dt);
+    const actual=Math.hypot(shot.velocity.x,shot.velocity.z);
+    const postAngle=Math.atan2(shot.velocity.z,shot.velocity.x);
+    const postError=Math.abs(Math.atan2(Math.sin(target-postAngle),Math.cos(target-postAngle)));
+    return {expected,actual,preError,postError};
+  })()`);
+  assert.ok(Math.abs(turn.actual-turn.expected)<1e-5,
+    `near-cup heading turn changed speed (${turn.expected} -> ${turn.actual})`);
+  assert.ok(turn.postError<turn.preError, 'near-cup turn did not steer toward cup');
+
+  const backstop = game.run(`(() => {
+    courseState={level:1,completed:false};setLayout(1);phase='ready';ball={...START};
+    startShot(70,{x:160,y:0});
+    const wall=backstopGeometry(), t=wall.tangent;
+    const point=along=>({x:wall.x+t.x*along,z:wall.z+t.z*along});
+    const before=point(-BALL_RADIUS-.03),after=point(-BALL_RADIUS+.025);
+    ball={...after,y:layout.heightAt(after.x,after.z)+BALL_RADIUS};
+    shot.velocity={x:t.x*3,y:0,z:t.z*3};shot.elapsed=.5;
+    backstopContact(before);
+    const bounced=shot.velocity.x*t.x+shot.velocity.z*t.z;
+    const corrected=(ball.x-wall.x)*t.x+(ball.z-wall.z)*t.z;
+    if(bounced>=0||Math.abs(corrected+BALL_RADIUS)>.0001)
+      throw Error('Front backstop did not visibly bank the ball at its face');
+    phase='ready';ball={...START};startShot(70,{x:160,y:0});
+    const rear=point(wall.thickness+BALL_RADIUS+.12);
+    ball={...rear,y:layout.heightAt(rear.x,rear.z)+BALL_RADIUS};
+    shot.velocity={x:-t.x*2.5,y:0,z:-t.z*2.5};shot.elapsed=.5;
+    let flapSeen=false,flapDelay=0,steps=0;
+    for(;steps<120*60&&phase==='running';steps++){
+      stepPhysics(1/120);
+      if(shot&&shot.backstopFlapAt!==undefined){flapSeen=true;flapDelay=Math.max(flapDelay,shot.elapsed-shot.backstopFlapAt);}
+    }
+    return {bounced,corrected,flapSeen,flapDelay,phase,seconds:steps/120};
+  })()`);
+  assert.ok(backstop.flapSeen, 'rear arrival did not trigger hinged flap');
+  assert.ok(backstop.flapDelay>=.22, 'rear flap did not stay active long enough to open');
+  assert.equal(backstop.phase,'complete','rear overflow stalled behind backstop');
+  return { turn, backstop };
+}
+
 function checkCourse(catalog) {
+  const input = host(new Map());
+  input.load('game.js');
+  const shell = input.elements.get('.game-shell');
+  const shotArea = { closest() { return null; } };
+  const pointer = (x, y) => ({ pointerId: 7, clientX: x, clientY: y, target: shotArea, preventDefault() {} });
+  shell.handlers.pointerdown(pointer(640, 630));
+  shell.handlers.pointermove(pointer(510, 585));
+  assert.ok(input.run('power') > 0, 'pulling back should build shot power');
+  shell.handlers.pointerup(pointer(510, 585));
+  assert.equal(input.run('phase'), 'running', 'releasing over the shot dock should swing');
+  assert.ok(input.run('shot.power') > 0, 'release lost the player’s pullback power');
+  const fallbackInput = host(new Map());
+  fallbackInput.load('game.js');
+  const fallbackShell = fallbackInput.elements.get('.game-shell');
+  fallbackShell.setPointerCapture = () => { throw new Error('capture unavailable'); };
+  fallbackShell.handlers.pointerdown(pointer(640, 630));
+  fallbackInput.context.window.handlers.pointerup(pointer(510, 585));
+  assert.equal(fallbackInput.run('phase'), 'running', 'window release should swing without pointer capture');
+
   const game = host();
   game.load('game.js');
   game.run('frame(1016)');
@@ -341,8 +489,14 @@ function checkCourse(catalog) {
 }
 
 const catalog = checkShop();
+checkLocalReset();
+const cupRegressions = checkCupRegressions();
 const result = checkCourse(catalog);
+checkStaleShopSave();
 console.log(`PASS shop: ${catalog.clubTiers.length} club tiers, ${catalog.ballTiers.length} ball tiers, combined cart through final tier, XP, reload`);
+console.log('PASS shop stale tabs: newer XP, shot count, club/ball gear and unlocks survive single-item purchases');
+console.log('PASS local reset: XP, gear, course and tutorial flag return to starter state');
+console.log(`PASS cup/backstop: speed-preserving turn, front bank, timed rear flap and cup in ${cupRegressions.backstop.seconds.toFixed(1)}s`);
 console.log(`PASS course: ${result.count} shot traces${result.fullCount ? ` including all ${result.fullCount} blueprints` : ''}, ${result.different} unique layouts, ${result.routeShapes} route shapes across ${result.routeFamilies} turn patterns, minimum prop gap ${result.minSpacing.toFixed(2)}`);
 console.log(`PASS reward/persistence: longest ${result.longest.toFixed(1)}s, maximum frame step ${result.largestStep.toFixed(2)}, final cup radius ${result.furthestFinish.toFixed(2)}`);
 console.log(`PASS tree collision: ${result.treeContact.separation.toFixed(2)} world-unit clearance and outward bounce`);

@@ -7,7 +7,7 @@
   if(!gl){document.getElementById('webgl-error').hidden=false;return;}
 
   const assets=[
-    {id:'course',icon:'⌁',kind:'THE WHOLE COURSE',name:'A world you can touch.',short:'Full assembly',description:'A playable-scale landscape study: raised turf, timber rails, moving props, water, and a cup that belongs in the terrain.',specs:[['UNITS','One unit = one gameplay unit'],['LIGHT','Upper-left warm sun'],['PATH','Local +X forward, +Z across']],camera:{az:1.05,el:.48,r:22,target:[0,.4,0]}},
+    {id:'course',icon:'⌁',kind:'THE WHOLE COURSE',name:'A world you can touch.',short:'Full assembly',description:'A playable-scale landscape study: raised turf, timber rails, moving props, water, and a cup that belongs in the terrain.',specs:[['UNITS','One unit = one gameplay unit'],['LIGHT','Upper-left warm sun'],['PATH','Local +X forward, +Z across']],camera:{az:1.05,el:.48,r:22,target:[1.1,.4,0]}},
     {id:'fairway',icon:'⌁',kind:'TRACK / TOPOGRAPHY',name:'Land with a real edge.',short:'Fairway & rails',description:'The fairway rises into a gentle hill. Grassy bank toes meet surrounding soil, while capped timber side rails follow the route.',specs:[['LANE','±2.1 units after tee'],['RAIL','0.14 thick; 0.16–0.55 high'],['TEE','Open behind the ball']],camera:{az:.98,el:.47,r:11,target:[0,.1,0]}},
     {id:'balls',icon:'●',kind:'EQUIPMENT / BALL',name:'A little sphere of luck.',short:'Ball families',description:'Pale pearl shells carry shallow geometric dimples and one composed, surface-following family crest. Rebound, Whirl, and Glide stay recognizable from orbit.',specs:[['RADIUS','0.19 units'],['FAMILIES','Bounce / spin / roll'],['FINISH','Pearl shell + recessed dimples']],camera:{az:1.08,el:.28,r:3.5,target:[0,.23,0]}},
     {id:'clubs',icon:'♠',kind:'EQUIPMENT / CLUB',name:'Three ways to swing.',short:'Vertical clubs',description:'A driver, wedge, and iron now have closed, solid head meshes with front, back, crown, sole, and edge faces. Their shafts and grips share one material language.',specs:[['STANCE','Vertical first-person profile'],['FAMILIES','Driver / wedge / iron'],['MATERIAL','Metal, enamel, rubber']],camera:{az:1.08,el:.31,r:5.5,target:[0,1.18,0]}},
@@ -201,7 +201,11 @@
       quad(oa,ob,V(ob[0],bottom,ob[2]),V(oa[0],bottom,oa[2]),'#89a18a',.02);
     }
   }
-  function shadow(x,z,rx,rz){ellipseDisc(x,.003,z,rx,rz,.003,'#789983','#789983',28);ellipseDisc(x,.006,z,rx*.67,rz*.65,.003,'#638572','#638572',28);}
+  function shadow(x,z,rx,rz,soft=false){
+    const outer=soft?'#a8c2a0':'#789983',inner=soft?'#97b596':'#638572';
+    ellipseDisc(x,.003,z,rx,rz,.003,outer,outer,28);
+    ellipseDisc(x,.006,z,rx*.67,rz*.65,.003,inner,inner,28);
+  }
   function perspective(fov,aspect,near,far){const f=1/Math.tan(fov/2);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0]);}
   function lookAt(eye,target){const z=unit(sub(eye,target)),x=unit(cross([0,1,0],z)),y=cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1]);}
 
@@ -331,7 +335,7 @@
     for(let i=0;i<3;i++){const a=time*1.2+i*2.09;ellipsoid(Math.cos(a)*.86,.12+Math.sin(time*2+i)*.07,Math.sin(a)*.86,.018,.018,.018,'#f8d2ff',.9,7,9);}
   }
   function modelBumper(){
-    shadow(0,0,.7,.6);ellipseDisc(0,.005,0,.57,.54,.075,'#68485c','#e6adbf');
+    shadow(0,0,.7,.6,true);ellipseDisc(0,.005,0,.57,.54,.075,'#95677d','#e6adbf');
     ringXZ(0,.086,0,.48,.44,.03,'#fff0cb',.56);
     ellipticalFrustum(0,0,.16,.49,.37,.37,.345,.345,'#d45171','#fa9a9c',24);
     ringXZ(0,.18,0,.375,.375,.035,'#fce8c4',.72);
@@ -343,10 +347,10 @@
   }
   function modelMole(time=0){
     const pop=.84+.08*Math.sin(time*2.5),x=1.04;
-    shadow(x,0,.42,.35);ellipseDisc(x,.008,0,.46,.41,.033,'#ad8c62','#dec393');
+    shadow(x,0,.42,.35,true);ellipseDisc(x,.008,0,.46,.41,.033,'#c5a278','#ead1a6');
     ringXZ(x,.045,0,.35,.31,.017,'#f3d6a3',.17);
-    ellipsoid(x,.16+pop*.17,0,.32,.31*pop,.29,'#bb936b',.28,12,18);
-    ellipsoid(x,.19+pop*.13,.23,.2,.12,.08,'#ead0ab',.23,10,14);
+    ellipsoid(x,.16+pop*.17,0,.32,.31*pop,.29,'#d0ab83',.28,12,18);
+    ellipsoid(x,.19+pop*.13,.23,.2,.12,.08,'#f1dbb9',.23,10,14);
     for(const side of [-1,1]){ellipsoid(x+side*.13,.34+pop*.13,.255,.026,.03,.018,'#3e3430',.28,7,9);ellipsoid(x+side*.32,.14,.15,.12,.06,.1,'#cba67d',.14,8,10);}
     ellipsoid(x,.25+pop*.13,.30,.055,.038,.025,'#eaa29a',.34,8,11);
     for(const side of [-1,1])for(const j of [-1,1])tube([V(x+side*.09,.26+pop*.13,.32),V(x+side*.31,.24+pop*.13+j*.045,.37)],.004,'#efddbb',.12,5);
@@ -571,20 +575,20 @@
     }
   }
   function modelCannonDemoBall(time){
-    const cycle=time%5.4;
-    if(cycle<.45||cycle>4.05)return;
+    const cycle=time%3.6;
+    if(cycle<.20||cycle>2.80)return;
     let x,y;
-    if(cycle<1.25){const q=(cycle-.45)/.80;x=-1.34+q*.77;y=.35+q*.18;}
-    else if(cycle<2.0){const q=(cycle-1.25)/.75;x=-.57+q*.97;y=.53+q*.16;}
-    else if(cycle<2.55){x=.40;y=.69;}
+    if(cycle<.70){const q=(cycle-.20)/.50;x=-1.34+q*.77;y=.35+q*.18;}
+    else if(cycle<1.15){const q=(cycle-.70)/.45;x=-.57+q*.97;y=.53+q*.16;}
+    else if(cycle<1.45){x=.40;y=.69;}
     else{
-      const q=(cycle-2.55)/1.50;x=.40+q*2.15;
+      const q=(cycle-1.45)/1.35;x=.40+q*2.15;
       y=x<=.82?.69+(x-.40)*(.17/1.06):.757+(x-.82)*.40-.08*(x-.82)**2;
     }
     ellipsoid(x,y,0,.19,.19,.19,'#fff8e8',.76,12,20);
     ellipsoid(x-.045,y+.07,.136,.026,.026,.009,'#ffffff',.63,7,10);
-    if(cycle>=2.55&&cycle<2.86){
-      const r=.04+(cycle-2.55)*.7;
+    if(cycle>=1.45&&cycle<1.72){
+      const r=.04+(cycle-1.45)*.7;
       const flash=[];for(let i=0;i<24;i++){const a=i*Math.PI/12;flash.push(V(.73,.73+Math.sin(a)*r,Math.cos(a)*r));}
       tube(flash,.023,'#ffdf9c',.8,7,true);
       for(let i=0;i<7;i++){const a=i*Math.PI*2/7;

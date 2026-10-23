@@ -82,6 +82,7 @@ const clubColors = { rookie: '#be8057', meteor: '#bf5a2c', cloud: '#71b6bd', lig
 const courseNames = ['The First Green', 'The Friendly Bumper', 'Little Launch', 'The Sky Loop', 'Driftwood River', 'Cannonball Corner', 'The Grand Detour'];
 const courseSubtitles = ['One little green. One perfectly impossible shot.', 'A gentle nudge in exactly the right direction.', 'The sky is just another shortcut.', 'Round and round, then straight to glory.', 'The current has excellent aim.', 'Some shots call for a cannon.', 'Every shortcut in the world, all at once.'];
 const scene = document.getElementById('scene');
+const gameShell = document.querySelector('.game-shell');
 const ctx = scene.getContext('2d');
 const $ = (id) => document.getElementById(id);
 const stage = { width: 0, height: 0, dpr: 1, time: 0, featureTime: 0 };
@@ -91,6 +92,7 @@ let layout = courseLayout(courseState.level);
 Object.assign(START,layout.start);
 Object.assign(CUP,layout.cup);
 let dragging = false;
+let activePointerId = null;
 let dragOrigin = null;
 let dragNow = null;
 let power = 0;
@@ -103,7 +105,7 @@ let calloutTimer;
 let animatedAt = performance.now();
 
 function readProgress() {
-  const fallback = { xp: 1240, holeCount: 4, equipped: 'rookie', claimed: [], owned: ['rookie'], equippedBall: 'classic', ownedBalls: ['classic'], claimedBallTiers: [] };
+  const fallback = { xp: 0, holeCount: 0, equipped: 'rookie', claimed: [], owned: ['rookie'], equippedBall: 'classic', ownedBalls: ['classic'], claimedBallTiers: [] };
   try {
     const data = JSON.parse(localStorage.getItem(PROGRESS_KEY));
     if (data && Number.isFinite(data.xp) && Number.isInteger(data.holeCount)) {
@@ -198,7 +200,7 @@ function updateCamera(now) {
   const startEye={x:START.x-teeDirection.x*3,y:2.35,z:START.z-teeDirection.z*3};
   const startTarget={x:START.x+teeDirection.x*5,y:.35,z:START.z+teeDirection.z*5};
   if(phase!=='running'||!shot){placeCamera(startEye,startTarget);return;}
-  const elapsed=now-shot.start;
+  const elapsed=shot.elapsed*1000;
   const follow=smooth(Math.max(0,Math.min(1,(elapsed-650)/950)));
   const tangent=pathTangent(Math.max(0,Math.min(1,(ball.x-START.x)/layout.span)));
   const movingEye={x:ball.x-tangent.x*3,y:2.35+ball.y*.35,z:ball.z-tangent.z*3};
@@ -216,6 +218,11 @@ function pathTangent(t){
   const a=layout.centerline(Math.max(0,t-.003)),b=layout.centerline(Math.min(1,t+.003));
   const dx=b.x-a.x,dz=b.z-a.z,n=Math.hypot(dx,dz)||1;
   return{x:dx/n,z:dz/n};
+}
+function backstopGeometry(){
+  const tangent=pathTangent(1),normal={x:-tangent.z,z:tangent.x};
+  return{x:CUP.x+tangent.x*1.25,z:CUP.z+tangent.z*1.25,
+    tangent,normal,halfSpan:1.8,height:.55,thickness:.14};
 }
 function cameraDepth(p){const r={x:p.x-camera.eye.x,y:p.y-camera.eye.y,z:p.z-camera.eye.z};return r.x*camera.forward.x+r.y*camera.forward.y+r.z*camera.forward.z;}
 function project(x,y,z) {
@@ -360,6 +367,29 @@ function drawCorridorRails(){
   }
   segments.sort((a,b)=>b.depth-a.depth);
   for(const s of segments)drawRailSegment(s.side,s.t,s.u);
+}
+function drawBackstop(){
+  const wall=backstopGeometry();
+  const point=(across,along,lift)=>{
+    const x=wall.x+wall.normal.x*across+wall.tangent.x*along;
+    const z=wall.z+wall.normal.z*across+wall.tangent.z*along;
+    return{x,y:layout.heightAt(x,z)+lift,z};
+  };
+  const w=wall.halfSpan,h=wall.height,d=wall.thickness;
+  // Front face is the same world plane used by the backstop contact. The cap
+  // adds depth only behind it, away from the cup and incoming ball.
+  const opening=shot?.backstopFlapAt===undefined?0:
+    Math.max(0,Math.min(1,(shot.elapsed-shot.backstopFlapAt)/.22));
+  const angle=opening*Math.PI*.47;
+  const panelBottom=(across)=>point(across,-h*Math.sin(angle),h-h*Math.cos(angle)+.025);
+  poly([point(-w,d,h),point(w,d,h),point(w,0,h),point(-w,0,h)],'#f0d6a1','#684a35',1);
+  poly([panelBottom(-w),panelBottom(w),point(w,0,h),point(-w,0,h)],'#b58b59','#694a35',1);
+  lineWorld([point(-w,0,h),point(w,0,h)],'#fff1c4',2.5);
+  for(const across of [-w,w]){
+    lineWorld([point(across,-.025,.025),point(across,-.025,h+.04)],'#765139',3);
+    const nail=point(across,0,h*.8),p=project(nail.x,nail.y,nail.z);
+    ctx.fillStyle='#f4dfa9';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1.5,p.scale*.018),0,7);ctx.fill();
+  }
 }
 function centerline(){return Array.from({length:73},(_,i)=>layout.centerline(i/72));}
 function ribbon(points,width,fill,stroke){const left=[],right=[];for(let i=0;i<points.length;i++){const a=points[Math.max(0,i-1)],b=points[Math.min(points.length-1,i+1)];const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz)||1;left.push({x:points[i].x-dz/len*width/2,y:points[i].y,z:points[i].z+dx/len*width/2});right.push({x:points[i].x+dz/len*width/2,y:points[i].y,z:points[i].z-dx/len*width/2});}poly([...left,...right.reverse()],fill,stroke,stroke?1.5:0);}
@@ -896,11 +926,14 @@ function drawDepthObjects(t){
   const objects=layout.features.map(f=>movingFeature(f,t/1000));
   for(const item of layout.trees)objects.push({...item,y:layout.heightAt(item.x,item.z),kind:'tree'});
   if(shot?.mole?.active)objects.push({...shot.mole,kind:'mole',y:layout.heightAt(shot.mole.x,shot.mole.z)});
+  const backstop=backstopGeometry();
+  objects.push({kind:'backstop',x:backstop.x,y:layout.heightAt(backstop.x,backstop.z)+backstop.height*.5,z:backstop.z});
   objects.push({kind:'cup',x:CUP.x,y:.04,z:CUP.z},{kind:'ball',x:ball.x,y:ball.y,z:ball.z});
   objects.sort((a,b)=>cameraDepth(b)-cameraDepth(a));
   for(const item of objects){
     if(item.kind!=='ball'&&cameraDepth(item)<.45)continue;
     if(item.kind==='cup')drawHole(t);
+    else if(item.kind==='backstop')drawBackstop();
     else if(item.kind==='ball')drawBall(t);
     else if(item.kind==='bumper')drawBumper(item);
     else if(item.kind==='pad')drawPad(item,t);
@@ -926,8 +959,11 @@ function drawNearRails(){
   for(const s of segments)drawRailSegment(s.side,s.t,s.u);
 }
 function frame(now){
-  const dt=Math.min(3,(now-animatedAt)/16.67||1);animatedAt=now;stage.time=now;
-  if(phase==='running')updateShot(now,dt);else stage.featureTime=now/1000;
+  const frameMs=Math.max(0,now-animatedAt);
+  const dt=Math.min(3,frameMs/16.67);animatedAt=now;stage.time=now;
+  // Keep ball, moving colliders, and follow camera on the same simulation
+  // clock. A slow frame can catch up without taking a visible giant step.
+  if(phase==='running')updateShot(Math.min(.12,frameMs/1000));else stage.featureTime=now/1000;
   updateCamera(now);background(now);drawStage();drawBanks();drawBunker();drawFairway();drawWater(now);
   drawSlopeGuides();drawDetails(now);drawCorridorRails();drawDepthObjects(stage.featureTime*1000);
   drawNearRails();drawRescueEffect(now);drawAim();drawClub(now);drawParticles(dt);requestAnimationFrame(frame);
@@ -937,13 +973,35 @@ requestAnimationFrame(frame);
 function showCallout(message, icon='✦', duration=1300){$('callout-text').textContent=message;$('callout-icon').textContent=icon;$('event-callout').classList.add('visible');clearTimeout(calloutTimer);calloutTimer=setTimeout(()=>$('event-callout').classList.remove('visible'),duration)}
 function setPower(value){power=Math.max(0,Math.min(100,value));$('shot-percent').textContent=`${Math.round(power)}%`;$('power-fill').style.width=`${power}%`;$('shot-instruction').textContent=power<25?'A little goes a long way…':power<70?'Looking good. Let it fly.':'This is going to be BIG.'}
 function pointerPos(e){const r=scene.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
-scene.addEventListener('pointerdown',e=>{if(phase!=='ready')return;dragging=true;dragOrigin=pointerPos(e);dragNow=dragOrigin;scene.setPointerCapture(e.pointerId);setPower(0)});
-scene.addEventListener('pointermove',e=>{if(!dragging)return;dragNow=pointerPos(e);setPower(Math.hypot(dragNow.x-dragOrigin.x,dragNow.y-dragOrigin.y)/1.65)});
-scene.addEventListener('pointerup',e=>{if(!dragging)return;dragNow=pointerPos(e);const vector={x:dragOrigin.x-dragNow.x,y:dragOrigin.y-dragNow.y};dragging=false;startShot(power,vector)});
-scene.addEventListener('pointercancel',()=>{dragging=false;setPower(0)});
-function defaultAimVector(){const a=project(START.x,START.y,START.z),b=project(CUP.x,.23,CUP.z);return{x:b.x-a.x,y:b.y-a.y};}
-$('keyboard-shot').addEventListener('click',()=>{if(phase==='ready')startShot(58,defaultAimVector())});
-window.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&phase==='ready'&&document.activeElement===document.body){e.preventDefault();startShot(58,defaultAimVector())}});
+gameShell.addEventListener('pointerdown',e=>{
+  if(phase!=='ready'||dragging||e.target.closest?.('button,a,[role="dialog"]'))return;
+  e.preventDefault();dragging=true;activePointerId=e.pointerId;
+  dragOrigin=pointerPos(e);dragNow=dragOrigin;
+  try{gameShell.setPointerCapture(e.pointerId)}catch(_){/* Window release still finishes the shot. */}
+  setPower(0);
+});
+function moveShotPointer(e){
+  if(!dragging||e.pointerId!==activePointerId)return;
+  dragNow=pointerPos(e);
+  setPower(Math.hypot(dragNow.x-dragOrigin.x,dragNow.y-dragOrigin.y)/1.65);
+}
+function releaseShotPointer(e){
+  if(!dragging||e.pointerId!==activePointerId)return;
+  e.preventDefault();dragNow=pointerPos(e);
+  const vector={x:dragOrigin.x-dragNow.x,y:dragOrigin.y-dragNow.y};
+  setPower(Math.hypot(vector.x,vector.y)/1.65);
+  dragging=false;activePointerId=null;startShot(power,vector);
+}
+function cancelShotPointer(e){
+  if(e.pointerId!==activePointerId)return;
+  dragging=false;activePointerId=null;setPower(0);
+}
+gameShell.addEventListener('pointermove',moveShotPointer);
+gameShell.addEventListener('pointerup',releaseShotPointer);
+gameShell.addEventListener('pointercancel',cancelShotPointer);
+window.addEventListener('pointermove',moveShotPointer);
+window.addEventListener('pointerup',releaseShotPointer);
+window.addEventListener('pointercancel',cancelShotPointer);
 function mix(a,b,t){return a+(b-a)*t}
 function smooth(t){return t*t*(3-2*t)}
 // The ball is integrated from its velocity. The green is a shallow visible bowl
@@ -1027,7 +1085,10 @@ function contactFlagPole(){
 function contactBoost(kind,feature,radiusX,radiusZ,impulse,lift,label){
   if(shot.usedBoosts.has(kind))return;
   const x=feature.x,z=feature.z,baseY=layout.heightAt(x,z);
-  if(((ball.x-x)/radiusX)**2+((ball.z-z)/radiusZ)**2>1||ball.y>baseY+.65)return;
+  // Pads and cannon plinths fire only when the ball touches their visible top.
+  const contactTop=feature.kind==='pad'?.06:.08;
+  if(((ball.x-x)/radiusX)**2+((ball.z-z)/radiusZ)**2>1||
+     ball.y>baseY+contactTop+BALL_RADIUS+.035)return;
   const ahead=pathTangent(feature.t);
   shot.velocity.x+=ahead.x*impulse;shot.velocity.z+=ahead.z*impulse;
   shot.velocity.y=Math.max(shot.velocity.y,lift*shot.ballProfile.liftMultiplier);shot.usedBoosts.add(kind);
@@ -1074,6 +1135,43 @@ function railContact(before){
     shot.velocity.z-=(1+shot.ballProfile.wallRestitution)*out*here.normal.z*side;}
   if(shot.elapsed-shot.lastWall>.42){shot.lastWall=shot.elapsed;contactEvent('bank',ball.x,ball.z,'RAIL BANK!','✳');}
 }
+function backstopContact(before){
+  const wall=backstopGeometry(),v=shot.velocity;
+  const relativeX=ball.x-wall.x,relativeZ=ball.z-wall.z;
+  const along=relativeX*wall.tangent.x+relativeZ*wall.tangent.z;
+  const across=relativeX*wall.normal.x+relativeZ*wall.normal.z;
+  if(Math.abs(across)>wall.halfSpan+BALL_RADIUS)return;
+  const priorAlong=(before.x-wall.x)*wall.tangent.x+(before.z-wall.z)*wall.tangent.z;
+  const edgeAcross=Math.max(-wall.halfSpan,Math.min(wall.halfSpan,across));
+  const edgeX=wall.x+wall.normal.x*edgeAcross,edgeZ=wall.z+wall.normal.z*edgeAcross;
+  const top=layout.heightAt(edgeX,edgeZ)+wall.height;
+  if(ball.y>top+BALL_RADIUS)return;
+  // A high shot can clear the rail and land behind it. The full hinged leaf
+  // visibly folds toward the cup instead of trapping the ball on its rear face.
+  const flapClearance=wall.halfSpan-BALL_RADIUS;
+  if(Math.abs(across)<flapClearance&&priorAlong>wall.thickness&&along<wall.thickness+BALL_RADIUS+.035){
+    if(shot.backstopFlapAt===undefined){shot.backstopFlapAt=shot.elapsed;contactEvent('bank',wall.x,wall.z,'FLAP RETURN!','✳');}
+  }
+  // Hold a rear arrival against the leaf while it visibly swings clear.
+  if(shot.backstopFlapAt!==undefined&&Math.abs(across)<flapClearance&&
+     shot.elapsed-shot.backstopFlapAt>=.22)return;
+  // The rail's near face is at along=0; its timber cap occupies 0..thickness.
+  // Resolve both faces so a shot that arrives from behind cannot pass through it.
+  const front=priorAlong<=wall.thickness*.5;
+  const contact=front?-BALL_RADIUS:wall.thickness+BALL_RADIUS;
+  if((front&&along>=contact&&along<wall.thickness*.5)||
+     (!front&&along<=contact&&along>wall.thickness*.5)){
+    ball.x+=wall.tangent.x*(contact-along);
+    ball.z+=wall.tangent.z*(contact-along);
+    const inward=v.x*wall.tangent.x+v.z*wall.tangent.z;
+    if((front&&inward>0)||(!front&&inward<0)){
+      const restitution=shot.backstopFlapAt!==undefined&&!front?0:.43;
+      v.x-=(1+restitution)*inward*wall.tangent.x;
+      v.z-=(1+restitution)*inward*wall.tangent.z;
+      if(!shot.backstopTouched){shot.backstopTouched=true;contactEvent('bank',ball.x,ball.z,'BACKSTOP SAVE!','✳');}
+    }
+  }
+}
 function bridgeContact(feature,before){
   let loc=localCoordinates(feature,ball.x,ball.z);
   const prior=localCoordinates(feature,before.x,before.z),base=layout.heightAt(feature.x,feature.z);
@@ -1108,6 +1206,8 @@ function riverContact(dt){
   if(!layout.river)return false;
   const f={...layout.river,t:layout.river.t},loc=localCoordinates(f,ball.x,ball.z);
   if(Math.abs(loc.along)>layout.river.halfWidth||Math.abs(loc.across)>layout.river.span)return false;
+  const waterSurface=layout.centerline(layout.river.t).y+.039;
+  if(ball.y>waterSurface+BALL_RADIUS+.035)return false;
   const bridge=layout.features.find(item=>item.kind==='bridge');
   if(bridge){const onBridge=localCoordinates(bridge,ball.x,ball.z);if(Math.abs(onBridge.along)<1.08&&Math.abs(onBridge.across)<.76)return false;}
   shot.velocity.x+=loc.normal.x*.95*dt;shot.velocity.z+=loc.normal.z*.95*dt;
@@ -1211,6 +1311,19 @@ function stepPhysics(dt){
      (shot.elapsed>2.4&&speed<1.05)||(shot.elapsed>4.5&&headingToCup<.68));
   if(needsMole&&(!shot.mole||!shot.mole.active))spawnMole();
   v.x+=ax*dt;v.z+=az*dt;
+  // Inside the painted cup contours, the shallow bowl gently turns the ball.
+  // The turn rotates velocity only: it cannot add speed or alter the launch line.
+  if(dist<2.3&&ball.y<=groundHere+BALL_RADIUS+.04){
+    const horizontalSpeed=Math.hypot(v.x,v.z);
+    if(horizontalSpeed>.12){
+      const heading=Math.atan2(v.z,v.x),target=Math.atan2(toCup.z,toCup.x);
+      const error=Math.atan2(Math.sin(target-heading),Math.cos(target-heading));
+      const turnLimit=.8*Math.pow(1-dist/2.3,1.4)*dt;
+      const turn=Math.max(-turnLimit,Math.min(turnLimit,error));
+      v.x=Math.cos(heading+turn)*horizontalSpeed;
+      v.z=Math.sin(heading+turn)*horizontalSpeed;
+    }
+  }
   v.y-=7.8*dt;
   const before={x:ball.x,z:ball.z};
   ball.x+=v.x*dt;ball.z+=v.z*dt;ball.y+=v.y*dt;
@@ -1218,6 +1331,7 @@ function stepPhysics(dt){
   if(ball.y<ground){ball.y=ground;if(v.y<-.9)v.y=-v.y*shot.ballProfile.groundRestitution;else v.y=0;}
   // Curved side rails begin beyond the open tee and have no end caps.
   railContact(before);
+  backstopContact(before);
   const featureTime=shot.start/1000+shot.elapsed;
   stage.featureTime=featureTime;
   for(const raw of layout.features){
@@ -1248,13 +1362,16 @@ function startShot(p,vector){
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
     windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),sinking:false,lastTrail:0,lastCue:''};
-  phase='running';$('shot-dock').classList.add('hidden');$('keyboard-shot').disabled=true;
+  phase='running';$('shot-dock').classList.add('hidden');
   showCallout(strength<24?'A GENTLE TAP':'LET IT FLY!',strength<24?'〰':'↗',800);setPower(0);
 }
-function updateShot(now,dt){
+function updateShot(elapsedSeconds){
   if(!shot)return;
-  const seconds=Math.min(.05,dt/60),steps=Math.max(1,Math.ceil(seconds/(1/120)));
-  for(let i=0;i<steps&&phase==='running';i++)stepPhysics(seconds/steps);
+  const seconds=Math.max(0,Math.min(.12,elapsedSeconds));
+  if(seconds>0){
+    const steps=Math.ceil(seconds/(1/120));
+    for(let i=0;i<steps&&phase==='running';i++)stepPhysics(seconds/steps);
+  }
   if(!shot)return;
   if(shot.windActive){const p=project(ball.x,ball.y,ball.z);$('wind-streaks').style.left=`${p.x-135}px`;$('wind-streaks').style.top=`${p.y-100}px`;$('wind-streaks').classList.add('active');}
   else $('wind-streaks').classList.remove('active');
@@ -1262,6 +1379,6 @@ function updateShot(now,dt){
   if(shot.riverActive&&shot.lastCue!=='river'){shot.lastCue='river';showCallout('THE RIVER HELPS','≈',1000);}
 }
 function finishShot(){phase='complete';$('wind-streaks').classList.remove('active');const base=300+courseState.level*72;const bonus=Math.min(140,Math.round(shot.power*1.2));const reward=base+bonus;savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);showCelebration(true,reward);shot=null;}
-function showCelebration(animate,reward){$('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;$('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';$('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';$('celebration').hidden=false;$('shot-dock').classList.add('hidden');$('keyboard-shot').disabled=true;if(animate)burstConfetti();}
+function showCelebration(animate,reward){$('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;$('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';$('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';$('celebration').hidden=false;$('shot-dock').classList.add('hidden');if(animate)burstConfetti();}
 function burstConfetti(){const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
-$('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');$('keyboard-shot').disabled=false;updateHud();showCallout('A NEW ADVENTURE','✳',1300)});
+$('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');updateHud();showCallout('A NEW ADVENTURE','✳',1300)});

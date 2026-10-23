@@ -1,6 +1,6 @@
 # Course object design lab
 
-With the existing repository server on port 8000, open `http://127.0.0.1:8000/prototype-3d/index.html`. Select an object, drag to orbit it, scroll to zoom, and reset the view from the canvas control. This is a self-contained WebGL2 reference gallery; production pages do not load it.
+With the existing repository server on port 8000, open `http://127.0.0.1:8000/prototype-3d/index.html`. Select an object, drag to orbit it, scroll to zoom, and reset the view from the canvas control. This is a self-contained WebGL2 reference gallery; production pages do not load it. Review 03 centers the full assembly on its visible route, lightens the bumper and mole contact shadows, and fires the cannon demo after about 1.45 seconds instead of 2.55 seconds. The production cannon currently fires on contact without a loading sequence.
 
 ## Geometry contract
 

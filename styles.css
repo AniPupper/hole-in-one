@@ -176,3 +176,9 @@
   .club-art .price-badge,.ball-art .price-badge{left:5px;right:5px;top:8px;padding:6px 3px;font-size:13px;letter-spacing:0;text-align:center;white-space:nowrap}
   .club-art .card-check,.ball-art .card-check{top:auto;right:8px;bottom:9px}
 }
+
+/* Keep the course one obvious tap away from the shop. */
+.topbar-play{min-height:44px;display:inline-flex;align-items:center;justify-content:space-between;gap:28px;padding:0 18px;border:2px solid #df8d5c;border-radius:999px;background:#bf5a2c;color:#fff9ef;box-shadow:0 4px 0 #91421f;font-size:15px;font-weight:800;white-space:nowrap;transition:transform .2s,background .2s}
+.topbar-play:hover{background:#d87943;transform:translateY(-2px)}
+.topbar-play span{font-size:19px;line-height:1}
+@media(max-width:700px){.topbar-play{display:none}}
