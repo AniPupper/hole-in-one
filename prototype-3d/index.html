@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8eee5">
+  <title>Course Objects · 3D Design Lab</title>
+  <link rel="stylesheet" href="./gallery.css">
+  <script src="./gallery.js" defer></script>
+</head>
+<body>
+  <main class="lab">
+    <header class="lab-header">
+      <div class="wordmark"><span class="wordmark-icon" aria-hidden="true">✳</span><div><span class="wordmark-eyebrow">HOLE IN ONE · DESIGN LAB</span><strong>Course objects<span class="period">.</span></strong></div></div>
+      <div class="prototype-badge"><span class="badge-dot"></span> ISOLATED 3D PROTOTYPE</div>
+    </header>
+    <aside class="catalog" aria-label="3D object gallery">
+      <p class="catalog-intro">A consistent kit of objects, built at gameplay scale. Select an object and drag to inspect every side.</p>
+      <div class="catalog-list" id="catalog-list"></div>
+      <div class="catalog-footer"><b>Scale contract</b><span>1 model unit = 1 game world unit. +Y is up. +X follows the shot; +Z crosses the lane.</span></div>
+    </aside>
+    <section class="viewport" aria-label="Interactive 3D preview">
+      <canvas id="preview" aria-label="Interactive WebGL 3D course object preview. Drag to orbit and scroll to zoom."></canvas>
+      <div class="viewport-top"><span class="scene-index" id="scene-index">01 / 10</span><span class="render-label">REAL GEOMETRY · WEBGL2</span></div>
+      <div class="viewport-bottom"><span><b>DRAG</b> ORBIT</span><span><b>SCROLL</b> ZOOM</span><button id="reset-camera" type="button">RESET VIEW ↗</button></div>
+      <div class="webgl-error" id="webgl-error" hidden>WebGL2 is unavailable in this browser. The gallery requires a modern browser with hardware graphics enabled.</div>
+    </section>
+    <aside class="inspector" aria-live="polite">
+      <span class="inspector-kicker" id="asset-kind">THE WHOLE COURSE</span>
+      <h1 id="asset-title">A world you can touch.</h1>
+      <p id="asset-description">Every object has actual depth, a shared light direction, and a physical footprint sized for the live course.</p>
+      <div class="spec-list" id="spec-list"></div>
+      <div class="material-card"><span>THE MATERIAL LANGUAGE</span><p><b>Landscape</b> stays warm and natural. <b>Water</b> is turquoise. <b>Interactive props</b> carry the vivid color and glow. Cream highlights trace the same upper-left sun across every object.</p></div>
+    </aside>
+  </main>
+</body>
+</html>
