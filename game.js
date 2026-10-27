@@ -3,6 +3,10 @@ const COURSE_KEY = 'hole-in-one-course-v1';
 const START = { x: -4.15, y: .23, z: 2.65 };
 const CUP = { x: 4.03, y: .04, z: -2.35 };
 const BALL_RADIUS = .19;
+const WINDMILL_TUNNEL_XP = 75;
+const WINDMILL_TUNNEL_HALF_WIDTH = .12;
+const WINDMILL_TUNNEL_ROOF = .78;
+const WINDMILL_TUNNEL_HALF_LENGTH = .55;
 // All scenery and contacts use the same seeded, world-space course.  A hole's
 // number is its seed, so returning to that hole reproduces its exact layout.
 function courseLayout(level) {
@@ -202,6 +206,8 @@ function movingFeature(feature,timeSeconds){
   return{...feature,x:feature.x-dz/n*offset,z:feature.z+dx/n*offset};
 }
 const camera = { eye: null, target: null, forward: null, right: null, up: null };
+const cameraOrbit = { yaw: 0, pitch: 0, pointer: null };
+const previewCamera = { active: false, focusT: .5, across: 0, yaw: 0, pitch: .55, distance: 9, pointer: null };
 function normalize3(v) { const n = Math.hypot(v.x, v.y, v.z) || 1; return { x: v.x/n, y: v.y/n, z: v.z/n }; }
 function cross(a,b) { return { x:a.y*b.z-a.z*b.y, y:a.z*b.x-a.x*b.z, z:a.x*b.y-a.y*b.x }; }
 function placeCamera(eye,target) {
@@ -211,6 +217,17 @@ function placeCamera(eye,target) {
   camera.up=normalize3(cross(camera.right,camera.forward));
 }
 function updateCamera(now) {
+  if(previewCamera.active){
+    const focus=layout.pathPoint(previewCamera.focusT,previewCamera.across);
+    const dir=pathTangent(previewCamera.focusT);
+    const heading=Math.atan2(dir.z,dir.x)+previewCamera.yaw;
+    const horizontal=previewCamera.distance*Math.cos(previewCamera.pitch);
+    placeCamera({x:focus.x-Math.cos(heading)*horizontal,
+      y:focus.y+previewCamera.distance*Math.sin(previewCamera.pitch),
+      z:focus.z-Math.sin(heading)*horizontal},
+      {x:focus.x,y:focus.y+.2,z:focus.z});
+    return;
+  }
   const teeTangent=pathTangent(0);
   // Narrow screens need the first bend and the distant cup in the same view.
   // Blend the local tee direction toward the hole; the ball still launches
@@ -233,8 +250,11 @@ function updateCamera(now) {
   const finishTarget={x:focus.x+courseForward.x*1.15,y:.25,z:focus.z+courseForward.z*1.15};
   const trackedEye={x:mix(movingEye.x,finishEye.x,endBlend),y:mix(movingEye.y,finishEye.y,endBlend),z:mix(movingEye.z,finishEye.z,endBlend)};
   const trackedTarget={x:mix(movingTarget.x,finishTarget.x,endBlend),y:mix(movingTarget.y,finishTarget.y,endBlend),z:mix(movingTarget.z,finishTarget.z,endBlend)};
-  placeCamera({x:mix(startEye.x,trackedEye.x,follow),y:mix(startEye.y,trackedEye.y,follow),z:mix(startEye.z,trackedEye.z,follow)},
-              {x:mix(startTarget.x,trackedTarget.x,follow),y:mix(startTarget.y,trackedTarget.y,follow),z:mix(startTarget.z,trackedTarget.z,follow)});
+  const eye={x:mix(startEye.x,trackedEye.x,follow),y:mix(startEye.y,trackedEye.y,follow),z:mix(startEye.z,trackedEye.z,follow)};
+  const target={x:mix(startTarget.x,trackedTarget.x,follow),y:mix(startTarget.y,trackedTarget.y,follow),z:mix(startTarget.z,trackedTarget.z,follow)};
+  const rotate=p=>{const dx=p.x-ball.x,dz=p.z-ball.z,c=Math.cos(cameraOrbit.yaw),s=Math.sin(cameraOrbit.yaw);
+    return{x:ball.x+dx*c-dz*s,y:p.y+cameraOrbit.pitch*(p===eye?2.3:.65),z:ball.z+dx*s+dz*c};};
+  placeCamera(rotate(eye),rotate(target));
 }
 function pathTangent(t){
   const a=layout.centerline(Math.max(0,t-.003)),b=layout.centerline(Math.min(1,t+.003));
@@ -664,36 +684,41 @@ function drawBridge(feature){
 function drawWindmill(feature,t){
   const {x,z}=feature,ground=layout.heightAt(x,z);
   const phase=t/1000*1.5+feature.phase;
-  for(let i=0;i<4;i++){
-    const a=phase+i*Math.PI/2;
-    const tipX=x+Math.cos(a)*.88+.68,tipZ=z-.47;
-    const shadeY=layout.heightAt(tipX,tipZ)+.025;
-    lineWorld([{x:x+.28,y:layout.heightAt(x+.28,z-.2)+.025,z:z-.2},
-      {x:tipX,y:shadeY,z:tipZ}],'#274b4650',Math.max(2,project(x,ground,z).scale*.09));
-  }
+  const dir=pathTangent(feature.t),normal={x:-dir.z,z:dir.x};
+  const point=(along,across,height)=>({x:x+dir.x*along+normal.x*across,
+    y:ground+height,z:z+dir.z*along+normal.z*across});
   ellipseWorld(x,ground+.018,z,.82,.59,'#203d344f');
   raisedDisc(x,z,ground,.61,.49,.09,'#855d42','#d4aa77','#f6ddb0');
-  poly([{x:x-.54,y:ground+.05,z:z+.25},{x:x+.54,y:ground+.05,z:z+.25},{x:x+.33,y:ground+2.06,z:z+.14},{x:x-.33,y:ground+2.06,z:z+.14}], '#f5dbad','#b76b3d',2);
-  poly([{x:x+.54,y:ground+.05,z:z+.25},{x:x+.6,y:ground+.05,z:z-.18},{x:x+.31,y:ground+2.06,z:z-.17},{x:x+.33,y:ground+2.06,z:z+.14}], '#d9a977','#a36b47',2);
-  poly([{x:x-.54,y:ground+.05,z:z+.25},{x:x-.60,y:ground+.05,z:z-.18},{x:x-.31,y:ground+2.06,z:z-.17},{x:x-.33,y:ground+2.06,z:z+.14}], '#be8c61','#a36b47',2);
-  poly([{x:x-.49,y:ground+2.01,z:z+.2},{x:x+.42,y:ground+2.01,z:z+.2},{x:x,y:ground+2.53,z:z+.17}], '#976e51','#f7dfaa',3);
-  for(const h of [.38,.73,1.08,1.43,1.78]){
+  const tunnelPoint=point;
+  poly([tunnelPoint(-.58,-.30,.04),tunnelPoint(.58,-.30,.04),tunnelPoint(.58,.30,.04),tunnelPoint(-.58,.30,.04)],'#725b45','#f6d99e',2);
+  for(const side of [-1,1]){
+    const near=side*.31,far=side*.49;
+    poly([tunnelPoint(-.55,near,.1),tunnelPoint(.55,near,.1),tunnelPoint(.55,near,.77),tunnelPoint(-.55,near,.77)],side<0?'#b8875e':'#d5ab7b','#8b6041',1);
+    poly([tunnelPoint(-.55,far,.1),tunnelPoint(.55,far,.1),tunnelPoint(.55,far,.77),tunnelPoint(-.55,far,.77)],side<0?'#9c6c4b':'#c59468','#8b6041',1);
+  }
+  poly([point(-.46,.34,.82),point(.46,.34,.82),point(.33,.14,2.06),point(-.33,.14,2.06)], '#f5dbad','#b76b3d',2);
+  poly([point(.46,.34,.82),point(.46,-.34,.82),point(.31,-.17,2.06),point(.33,.14,2.06)], '#d9a977','#a36b47',2);
+  poly([point(-.46,.34,.82),point(-.46,-.34,.82),point(-.31,-.17,2.06),point(-.33,.14,2.06)], '#be8c61','#a36b47',2);
+  for(const along of [-.55,.55]){
+    const arch=[];for(let i=0;i<=12;i++){const across=-.31+i*.62/12;arch.push(tunnelPoint(along,across,.57+.19*Math.sqrt(Math.max(0,1-(across/.31)**2))));}
+    lineWorld(arch,'#f6dda0',Math.max(2,project(x,ground+.5,z).scale*.025));
+  }
+  lineWorld([tunnelPoint(-.37,0,.05),tunnelPoint(.36,0,.05)],'#ffe59e',3);
+  poly([point(-.49,.2,2.01),point(.42,.2,2.01),point(0,.17,2.53)], '#976e51','#f7dfaa',3);
+  for(const h of [1.08,1.43,1.78]){
     const spread=.54-(.54-.33)*h/2.06;
-    lineWorld([{x:x-spread+.035,y:ground+h,z:z+.25-h*.055},{x:x+spread-.035,y:ground+h,z:z+.25-h*.055}],
+    lineWorld([point(-spread+.035,.25-h*.055,h),point(spread-.035,.25-h*.055,h)],
       '#c9946799',Math.max(1,project(x,ground+h,z).scale*.018));
     for(const side of [-.45,.34]){
-      const px=x+spread*side;
-      lineWorld([{x:px,y:ground+h+.015,z:z+.25-h*.055},{x:px+.015,y:ground+h+.15,z:z+.24-(h+.15)*.055}],
+      const along=spread*side;
+      lineWorld([point(along,.25-h*.055,h+.015),point(along+.015,.24-(h+.15)*.055,h+.15)],
         '#c9946770',Math.max(1,project(x,ground+h,z).scale*.014));
     }
   }
-  const door=project(x,ground+.48,z+.27),dr=Math.max(5,door.scale*.2);
-  ctx.fillStyle='#604833';ctx.beginPath();ctx.roundRect(door.x-dr*.7,door.y-dr*1.15,dr*1.4,dr*1.35,[dr,dr,0,0]);ctx.fill();
-  ctx.strokeStyle='#f1cf95';ctx.lineWidth=2;ctx.stroke();
-  const hub={x,y:ground+1.72,z:z+.32};
+  const hub=point(-.46,0,1.72);
   for(let i=0;i<4;i++){
     const angle=phase+i*Math.PI/2,dx=Math.cos(angle),dy=Math.sin(angle),nx=-dy,ny=dx;
-    const blade=(distance,side,depth=0)=>({x:hub.x+dx*distance+nx*side,y:hub.y+dy*distance+ny*side,z:hub.z+depth});
+    const blade=(distance,side,depth=0)=>point(-.46+depth,dx*distance+nx*side,1.72+dy*distance+ny*side);
     poly([blade(.15,-.07,-.12),blade(.88,-.16,-.12),blade(.88,.14,-.12),blade(.15,.07,-.12)],'#554b68');
     poly([blade(.88,-.16,-.12),blade(.88,.14,-.12),blade(.88,.14),blade(.88,-.16)],'#544560');
     poly([blade(.15,-.07),blade(.88,-.16),blade(.88,.14),blade(.15,.07)],'#faf2ff','#7663b9',2);
@@ -997,7 +1022,7 @@ function frame(now){
   if(renderer3D){
     try{
       renderer3D.render({layout,camera,ball,shot,progress:savedProgress,featureTime:stage.featureTime,
-        stage,movingFeature,phase,courseState,riverCenter,bridgeDeckHeight,cupBowlDrop,courseSurfaceAt,
+        stage,movingFeature,phase,previewing:previewCamera.active,courseState,riverCenter,bridgeDeckHeight,cupBowlDrop,courseSurfaceAt,
         ballStyle:window.BallUpgrades?.get(savedProgress.equippedBall),
         clubStyle:clubAppearance(savedProgress.equipped)});
     }catch(error){useClassicRenderer(error);}
@@ -1008,7 +1033,7 @@ function frame(now){
   }else{
     background(now);drawStage();drawBanks();drawBunker();drawFairway();drawWater(now);
     drawSlopeGuides();drawDetails(now);drawCorridorRails();drawDepthObjects(stage.featureTime*1000);
-    drawNearRails();drawRescueEffect(now);drawAim();drawClub(now);drawParticles(dt);
+    drawNearRails();drawRescueEffect(now);drawAim();if(!previewCamera.active)drawClub(now);drawParticles(dt);
   }
   requestAnimationFrame(frame);
 }
@@ -1031,18 +1056,44 @@ function showCallout(message, icon='✦', duration=1300){
 function setPower(value){power=Math.max(0,Math.min(100,value));$('shot-percent').textContent=`${Math.round(power)}%`;$('power-fill').style.width=`${power}%`;$('shot-instruction').textContent=power<25?'A little goes a long way…':power<70?'Looking good. Let it fly.':'This is going to be BIG.'}
 function pointerPos(e){const r=scene.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 gameShell.addEventListener('pointerdown',e=>{
-  if(phase!=='ready'||dragging||e.target.closest?.('button,a,[role="dialog"]'))return;
+  if(e.target.closest?.('button,a,[role="dialog"]'))return;
+  if(previewCamera.active){
+    e.preventDefault();previewCamera.pointer={id:e.pointerId,x:e.clientX,y:e.clientY,pan:e.shiftKey||e.button===2};
+    try{gameShell.setPointerCapture(e.pointerId)}catch(_){/* Window release ends preview drag. */}
+    return;
+  }
+  if(phase==='running'&&shot){
+    e.preventDefault();cameraOrbit.pointer={id:e.pointerId,x:e.clientX,y:e.clientY};
+    try{gameShell.setPointerCapture(e.pointerId)}catch(_){/* Window release still ends camera drag. */}
+    return;
+  }
+  if(phase!=='ready'||dragging)return;
   e.preventDefault();dragging=true;activePointerId=e.pointerId;
   dragOrigin=pointerPos(e);dragNow=dragOrigin;
   try{gameShell.setPointerCapture(e.pointerId)}catch(_){/* Window release still finishes the shot. */}
   setPower(0);
 });
 function moveShotPointer(e){
+  if(previewCamera.pointer?.id===e.pointerId){
+    const p=previewCamera.pointer,dx=e.clientX-p.x,dy=e.clientY-p.y;
+    if(p.pan){previewCamera.focusT=Math.max(0,Math.min(1,previewCamera.focusT-dy*.0015));
+      previewCamera.across=Math.max(-2,Math.min(2,previewCamera.across-dx*.012));}
+    else{previewCamera.yaw+=dx*.006;previewCamera.pitch=Math.max(.12,Math.min(1.25,previewCamera.pitch+dy*.004));}
+    p.x=e.clientX;p.y=e.clientY;return;
+  }
+  if(cameraOrbit.pointer?.id===e.pointerId){
+    const p=cameraOrbit.pointer;
+    cameraOrbit.yaw+=(e.clientX-p.x)*.006;
+    cameraOrbit.pitch=Math.max(-.55,Math.min(.7,cameraOrbit.pitch-(e.clientY-p.y)*.004));
+    p.x=e.clientX;p.y=e.clientY;return;
+  }
   if(!dragging||e.pointerId!==activePointerId)return;
   dragNow=pointerPos(e);
   setPower(Math.hypot(dragNow.x-dragOrigin.x,dragNow.y-dragOrigin.y)/1.65);
 }
 function releaseShotPointer(e){
+  if(previewCamera.pointer?.id===e.pointerId){previewCamera.pointer=null;return;}
+  if(cameraOrbit.pointer?.id===e.pointerId){cameraOrbit.pointer=null;return;}
   if(!dragging||e.pointerId!==activePointerId)return;
   e.preventDefault();dragNow=pointerPos(e);
   const vector={x:dragOrigin.x-dragNow.x,y:dragOrigin.y-dragNow.y};
@@ -1050,6 +1101,8 @@ function releaseShotPointer(e){
   dragging=false;activePointerId=null;startShot(power,vector);
 }
 function cancelShotPointer(e){
+  if(previewCamera.pointer?.id===e.pointerId){previewCamera.pointer=null;return;}
+  if(cameraOrbit.pointer?.id===e.pointerId){cameraOrbit.pointer=null;return;}
   if(e.pointerId!==activePointerId)return;
   dragging=false;activePointerId=null;setPower(0);
 }
@@ -1059,6 +1112,34 @@ gameShell.addEventListener('pointercancel',cancelShotPointer);
 window.addEventListener('pointermove',moveShotPointer);
 window.addEventListener('pointerup',releaseShotPointer);
 window.addEventListener('pointercancel',cancelShotPointer);
+function setPreview(active){
+  if(active&&phase!=='ready')return;
+  previewCamera.active=active;previewCamera.pointer=null;
+  if(active){previewCamera.focusT=.5;previewCamera.across=0;previewCamera.yaw=0;
+    previewCamera.pitch=.55;previewCamera.distance=Math.max(7,Math.min(15,layout.span*.48));}
+  $('preview-controls').hidden=!active;
+  $('shot-dock').classList.toggle('hidden',active);
+  gameShell.classList.toggle('previewing',active);
+}
+$('course-preview-open').addEventListener('click',()=>setPreview(true));
+$('preview-close').addEventListener('click',()=>setPreview(false));
+$('preview-back').addEventListener('click',()=>{previewCamera.focusT=Math.max(0,previewCamera.focusT-.18);});
+$('preview-forward').addEventListener('click',()=>{previewCamera.focusT=Math.min(1,previewCamera.focusT+.18);});
+$('preview-zoom-out').addEventListener('click',()=>{previewCamera.distance=Math.min(22,previewCamera.distance*1.18);});
+$('preview-zoom-in').addEventListener('click',()=>{previewCamera.distance=Math.max(3,previewCamera.distance/1.18);});
+gameShell.addEventListener('wheel',e=>{if(!previewCamera.active)return;
+  e.preventDefault();previewCamera.distance=Math.max(3,Math.min(22,previewCamera.distance*Math.exp(e.deltaY*.001)));},{passive:false});
+gameShell.addEventListener('contextmenu',e=>{if(previewCamera.active)e.preventDefault();});
+window.addEventListener('keydown',e=>{if(!previewCamera.active)return;
+  if(e.key==='Escape'){setPreview(false);return;}
+  const forward=e.key==='ArrowUp'||e.key.toLowerCase()==='w';
+  const back=e.key==='ArrowDown'||e.key.toLowerCase()==='s';
+  const left=e.key==='ArrowLeft'||e.key.toLowerCase()==='a';
+  const right=e.key==='ArrowRight'||e.key.toLowerCase()==='d';
+  if(forward||back||left||right){e.preventDefault();
+    previewCamera.focusT=Math.max(0,Math.min(1,previewCamera.focusT+(forward?.04:back?-.04:0)));
+    previewCamera.across=Math.max(-2,Math.min(2,previewCamera.across+(right?.2:left?-.2:0)));}
+});
 function mix(a,b,t){return a+(b-a)*t}
 function smooth(t){return t*t*(3-2*t)}
 // The ball is integrated from its velocity. The green is a shallow visible bowl
@@ -1354,30 +1435,58 @@ function riverContact(dt){
   shot.velocity.x+=loc.normal.x*.95*dt;shot.velocity.z+=loc.normal.z*.95*dt;
   return true;
 }
-function windmillContact(feature,timeSeconds){
-  const x=feature.x,z=feature.z,baseY=layout.heightAt(x,z),dx=ball.x-x,dz=ball.z-z;
-  if(ball.y<baseY+2.15+BALL_RADIUS){
+function windmillContact(feature,timeSeconds,before){
+  const x=feature.x,z=feature.z,baseY=layout.heightAt(x,z);
+  const loc=localCoordinates(feature,ball.x,ball.z);
+  const prior=localCoordinates(feature,before.x,before.z);
+  const dx=loc.along,dz=loc.across;
+  const inTunnel=Math.abs(dz)<=WINDMILL_TUNNEL_HALF_WIDTH&&
+    ball.y+BALL_RADIUS<=baseY+WINDMILL_TUNNEL_ROOF;
+  const entered=shot.tunnelEntries.has(feature.id);
+  if(entered&&(!inTunnel||dx<-WINDMILL_TUNNEL_HALF_LENGTH-BALL_RADIUS))
+    shot.tunnelEntries.delete(feature.id);
+  const forwardSpeed=shot.velocity.x*loc.dir.x+shot.velocity.z*loc.dir.z;
+  if(inTunnel&&forwardSpeed>.15&&
+    prior.along<=-WINDMILL_TUNNEL_HALF_LENGTH&&dx>-WINDMILL_TUNNEL_HALF_LENGTH)
+    shot.tunnelEntries.add(feature.id);
+  if(inTunnel&&shot.tunnelEntries.has(feature.id)&&
+    prior.along<WINDMILL_TUNNEL_HALF_LENGTH&&dx>=WINDMILL_TUNNEL_HALF_LENGTH){
+    shot.tunnelEntries.delete(feature.id);
+    if(!shot.tunnelAwards.has(feature.id)){
+      shot.tunnelAwards.add(feature.id);
+      shot.tunnelBonus+=WINDMILL_TUNNEL_XP;
+      contactEvent('tunnel',x,z,`WINDMILL TUNNEL +${WINDMILL_TUNNEL_XP} XP`,'✦');
+    }
+  }
+  if(!inTunnel&&ball.y<baseY+2.15+BALL_RADIUS){
     const h=Math.max(0,Math.min(1,(ball.y-baseY)/2.1));
     const rx=mix(.54,.33,h)+BALL_RADIUS,rz=mix(.39,.2,h)+BALL_RADIUS;
     const q=Math.hypot(dx/rx,dz/rz);
     if(q<1){
       const nx0=dx/(rx*rx),nz0=dz/(rz*rz),length=Math.hypot(nx0,nz0)||1;
-      const nx=nx0/length,nz=nz0/length,into=shot.velocity.x*nx+shot.velocity.z*nz;
-      ball.x=x+(q>.001?dx/q:rx);ball.z=z+(q>.001?dz/q:0);
+      const normalAlong=nx0/length,normalAcross=nz0/length;
+      const nx=normalAlong*loc.dir.x+normalAcross*loc.normal.x;
+      const nz=normalAlong*loc.dir.z+normalAcross*loc.normal.z;
+      const into=shot.velocity.x*nx+shot.velocity.z*nz;
+      const correctedAlong=q>.001?dx/q:rx,correctedAcross=q>.001?dz/q:0;
+      ball.x=x+correctedAlong*loc.dir.x+correctedAcross*loc.normal.x;
+      ball.z=z+correctedAlong*loc.dir.z+correctedAcross*loc.normal.z;
       if(into<0){shot.velocity.x-=(1+shot.ballProfile.wallRestitution)*into*nx;
         shot.velocity.z-=(1+shot.ballProfile.wallRestitution)*into*nz;}
       if(shot.elapsed-shot.lastBumper>.5){shot.lastBumper=shot.elapsed;contactEvent('windmill',x,z,'WINDMILL BANK!','✳');}
     }
   }
-  const rotorZ=z+.32,hubY=baseY+1.72;
-  if(Math.abs(ball.z-rotorZ)>BALL_RADIUS+.14||shot.elapsed-shot.lastBlade<.28)return;
+  const rotorAlong=-.46,hubY=baseY+1.72;
+  if(Math.abs(dx-rotorAlong)>BALL_RADIUS+.14||shot.elapsed-shot.lastBlade<.28)return;
   const a=timeSeconds*1.5+feature.phase;
   for(let i=0;i<4;i++){
     const angle=a+i*Math.PI/2,ux=Math.cos(angle),uy=Math.sin(angle);
-    const vx=ball.x-x,vy=ball.y-hubY,radial=vx*ux+vy*uy,side=-vx*uy+vy*ux;
+    const vy=ball.y-hubY,radial=dz*ux+vy*uy,side=-dz*uy+vy*ux;
     if(radial<.15||radial>.93||Math.abs(side)>.16+BALL_RADIUS)continue;
-    const nx=-uy*Math.sign(side||1),nz=Math.sign(ball.z-rotorZ||1)*.32;
-    shot.velocity.x+=nx*1.15;shot.velocity.z+=nz*.6;shot.velocity.y+=uy*.7;
+    const lateral=-uy*Math.sign(side||1),alongKick=-.32;
+    shot.velocity.x+=loc.normal.x*lateral*1.15+loc.dir.x*alongKick*.6;
+    shot.velocity.z+=loc.normal.z*lateral*1.15+loc.dir.z*alongKick*.6;
+    shot.velocity.y+=uy*.7;
     shot.lastBlade=shot.elapsed;
     contactEvent('blade',ball.x,ball.z,'WINDMILL WHACK!','✳');break;
   }
@@ -1470,12 +1579,10 @@ function stepPhysics(dt){
   const outward=(v.x*lane.normal.x+v.z*lane.normal.z)*Math.sign(lane.across||1);
   const behindTee=ball.x<START.x-.4;
   const needsMole=dist>2.6&&shot.elapsed-shot.lastMole>1.9&&
-    // A fast, sharply mis-aimed launch still gets a visible initial run, then
-    // meets the mole before it can vanish into empty space off the open tee.
     ((shot.elapsed>.13&&speed>6&&Math.abs(lane.across)>.8&&outward>3)||
      (shot.elapsed>.15&&speed>6&&headingToCup<.3)||
      (shot.elapsed>.65&&(offLane||behindTee))||(shot.elapsed>1.1&&headingToCup<-.05)||
-     (shot.elapsed>2.4&&speed<1.05)||(shot.elapsed>4.5&&headingToCup<.68));
+     (shot.elapsed>2.4&&speed<1.05));
   if(needsMole&&(!shot.mole||!shot.mole.active))spawnMole();
   v.x+=ax*dt;v.z+=az*dt;
   // Inside the painted cup contours, the shallow bowl gently turns the ball.
@@ -1507,7 +1614,7 @@ function stepPhysics(dt){
     if(f.kind==='pad')contactBoost(f.id,f,.78,.78,2.5,2.3,'LAUNCH PAD!');
     if(f.kind==='loop')contactLoop(f);
     if(f.kind==='cannon')contactCannon(f);
-    if(f.kind==='windmill')windmillContact(f,featureTime);
+    if(f.kind==='windmill')windmillContact(f,featureTime,before);
     if(f.kind==='bridge')bridgeContact(f,before);
   }
   shot.riverActive=riverContact(dt);
@@ -1534,8 +1641,9 @@ function startShot(p,vector){
   const speed=(.3+pull*6.6+3.5*pull**3)*ballProfile.launchMultiplier*clubProfile.speedMultiplier;
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
-    windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),sinking:false,lastTrail:0,lastCue:''};
-  phase='running';$('shot-dock').classList.add('hidden');
+    windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),tunnelEntries:new Set(),tunnelAwards:new Set(),tunnelBonus:0,sinking:false,lastTrail:0,lastCue:''};
+  cameraOrbit.yaw=0;cameraOrbit.pitch=0;cameraOrbit.pointer=null;
+  phase='running';gameShell.classList.add('shot-running');$('shot-dock').classList.add('hidden');$('view-hint').hidden=false;
   showCallout(strength<24?'A GENTLE TAP':'LET IT FLY!',strength<24?'〰':'↗',800);setPower(0);
 }
 function updateShot(elapsedSeconds){
@@ -1551,7 +1659,24 @@ function updateShot(elapsedSeconds){
   if(shot.elapsed-shot.lastTrail>.045){trail.push({...ball});if(trail.length>17)trail.shift();shot.lastTrail=shot.elapsed;}
   if(shot.riverActive&&shot.lastCue!=='river'){shot.lastCue='river';showCallout('THE RIVER HELPS','≈',1000);}
 }
-function finishShot(){phase='complete';$('wind-streaks').classList.remove('active');const base=140+35*courseState.level+30*layout.features.length+Math.round(8*layout.span);const bonus=Math.min(50,Math.round(shot.power*.5));const reward=base+bonus;savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);showCelebration(true,reward);shot=null;}
-function showCelebration(animate,reward){$('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;$('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';$('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';$('celebration').hidden=false;$('shot-dock').classList.add('hidden');if(animate)burstConfetti();}
+function finishShot(){
+  phase='complete';cameraOrbit.pointer=null;gameShell.classList.remove('shot-running');$('view-hint').hidden=true;$('wind-streaks').classList.remove('active');
+  const base=140+35*courseState.level+30*layout.features.length+Math.round(8*layout.span);
+  const powerBonus=Math.min(50,Math.round(shot.power*.5));
+  const tunnelBonus=shot.tunnelBonus||0,reward=base+powerBonus+tunnelBonus;
+  savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;
+  savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;
+  courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);
+  updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);
+  showCelebration(true,reward,tunnelBonus);shot=null;
+}
+function showCelebration(animate,reward,tunnelBonus=0){
+  $('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;
+  $('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';
+  $('tunnel-reward').hidden=!tunnelBonus;
+  $('tunnel-reward-xp').textContent=`+${tunnelBonus.toLocaleString()} XP`;
+  $('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';
+  $('celebration').hidden=false;$('shot-dock').classList.add('hidden');if(animate)burstConfetti();
+}
 function burstConfetti(){const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
 $('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');updateHud();showCallout('A NEW ADVENTURE','✳',1300)});

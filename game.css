@@ -48,6 +48,9 @@
 .event-callout strong{font-size:18px}
 .celebration-kicker,.reward-line span,.lifetime-line span,.celebration-actions a{font-size:12px}
 .reward-line strong{font-size:28px}.lifetime-line strong{font-size:21px}
+.tunnel-reward{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:8px;padding:10px 12px;border-radius:9px;background:#e7f0dc;color:#2e6545;font-size:13px;font-weight:900;letter-spacing:.4px}
+.tunnel-reward[hidden]{display:none}
+.tunnel-reward strong{white-space:nowrap;color:#2e6545;font:900 17px Outfit,sans-serif}
 .shop-button{font-size:14px}
 .celebration-actions button{font-size:13px}
 @media(max-width:1000px){.game-stats{width:220px}.course-intro{width:240px}}
@@ -137,5 +140,20 @@
 #scene-3d{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .game-shell.render-3d #scene-3d{display:block}
 .game-shell.render-3d #scene{z-index:1}
-.shot-dock .course-utility{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.game-shell.previewing #scene,.game-shell.shot-running #scene{cursor:grab}
+.view-hint{position:absolute;z-index:4;left:50%;bottom:30px;transform:translateX(-50%);padding:10px 15px;border-radius:999px;background:#173f32d9;color:#fff8e6;font-size:10px;font-weight:800;letter-spacing:1.5px;white-space:nowrap;pointer-events:none;box-shadow:0 8px 22px #173f3240}
+.view-hint[hidden]{display:none}
+.course-preview-button{min-width:0;min-height:44px;border:1px solid #bd8259;border-radius:999px;background:#173f32;color:#fff7e8;font-size:10px;font-weight:900;letter-spacing:1px;cursor:pointer}
+.course-preview-button span{font-size:15px;vertical-align:-1px;margin-right:4px;color:#f2c978}
+.course-preview-button:hover{background:#285d47}
+.preview-controls{position:absolute;z-index:7;left:50%;bottom:26px;transform:translateX(-50%);width:min(620px,calc(100% - 24px));padding:14px 16px;border:2px solid #fff8e6;border-radius:20px;background:#fffaf0f2;box-shadow:0 16px 42px #173f3245;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.preview-controls[hidden]{display:none}
+.preview-kicker{color:#194333;font:900 12px Outfit,sans-serif;letter-spacing:1.5px}
+.preview-help{color:#547568;font-size:10px;font-weight:700}
+.preview-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;width:100%}
+.preview-actions button{min-height:37px;padding:0 11px;border:1px solid #c5d6c5;border-radius:9px;background:#fff;color:#1b4634;font-size:10px;font-weight:900;letter-spacing:.4px;cursor:pointer}
+.preview-actions button:hover{background:#e8f0e4}
+.preview-actions #preview-close{background:#173f32;color:#fff;border-color:#173f32}
+@media(max-width:680px){.preview-help{font-size:9px}.preview-actions button{flex:1 1 auto;padding:0 8px}.shot-dock .course-utility{gap:5px}.course-preview-button{font-size:8px;letter-spacing:.4px}}
+.shot-dock .course-utility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .shot-dock .course-utility .tutorial-replay{min-width:0;min-height:44px;justify-content:center}

@@ -321,29 +321,43 @@
     for(const side of [-1,1])for(const j of [-1,1])tube([V(x+side*.09,.26+pop*.13,.32),V(x+side*.31,.24+pop*.13+j*.045,.37)],.004,'#efddbb',.12,5);
   }
   function modelWindmill(){
-    shadow(0,0,.78,.58);ellipseDisc(0,.003,0,.61,.49,.08,'#8b6445','#d2a875');
-    ellipticalFrustum(0,0,.08,2.1,.54,.39,.33,.20,'#c99a6e','#ecd1a3',20);
+    shadow(0,0,.78,.58);ringXZ(0,.045,0,.61,.49,.055,'#d2a875',.12);
+    // The opening runs through the base along the course's forward X axis.
+    // Its 0.62-wide interior clears the ball along the rewarded center line.
+    box(0,.39,-.40,1.1,.70,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
+    box(0,.39,.40,1.1,.70,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
+    box(0,.755,0,1.12,.13,.78,'#b98458',.16);
+    ellipticalFrustum(0,0,.82,2.1,.46,.34,.33,.20,'#c99a6e','#ecd1a3',20);
+    box(0,.05,0,1.28,.015,.60,'#314b3f',.1);
+    for(const end of [-.555,.555]){
+      const arch=[];
+      for(let i=0;i<=16;i++){
+        const across=-.31+i*.62/16;
+        arch.push(V(end,.57+.19*Math.sqrt(Math.max(0,1-(across/.31)**2)),across));
+      }
+      tube(arch,.025,'#f5d798',.25,7);
+      for(const side of [-1,1])tube([V(end,.10,side*.31),V(end,.57,side*.31)],.018,'#f5d798',.2,6);
+    }
+    for(const along of [-.28,.18])polygon([V(along-.12,.06,-.09),V(along+.10,.06,0),V(along-.12,.06,.09)],'#ffdf8b',.18);
     const roofA=V(-.48,2.06,.29),roofB=V(.48,2.06,.29),roofC=V(.48,2.06,-.28),roofD=V(-.48,2.06,-.28),peak=V(0,2.54,.02);
     tri(roofD,roofC,peak,'#865e47');tri(roofC,roofB,peak,'#a97050');tri(roofD,peak,roofA,'#b5835c');tri(roofA,peak,roofB,'#c59062');
     quad(V(-.49,2.02,.30),V(.49,2.02,.30),roofB,roofA,'#704f3c');
-    for(const y of [.52,.92,1.32,1.72])ringXZ(0,y,0,.48-(y/2.1)*.15,.36-(y/2.1)*.16,.014,'#e6c093',.12);
-    // Recessed arched doorway faces the same +Z side as the rotor.
-    box(0,.44,.38,.32,.53,.025,'#624938',.05);ellipsoid(0,.69,.395,.16,.14,.02,'#624938',.05,8,12);
-    cylinder(V(0,1.72,.28),V(0,1.72,.45),.12,.12,'#5d668d',.75,16);
+    for(const y of [.92,1.32,1.72])ringXZ(0,y,0,.48-(y/2.1)*.15,.36-(y/2.1)*.16,.014,'#e6c093',.12);
+    cylinder(V(-.28,1.72,0),V(-.45,1.72,0),.12,.12,'#5d668d',.75,16);
   }
   function modelWindmillRotor(time=0){
     const phase=time*1.5+.4;
     for(let i=0;i<4;i++){
-      const a=phase+i*Math.PI/2,c=Math.cos(a),s=Math.sin(a),perp=V(-s,c,0);
-      const blade=(r,w,z)=>V(c*r+perp[0]*w,1.72+s*r+perp[1]*w,z);
-      const innerL=blade(.15,-.07,.46),innerR=blade(.15,.07,.46),outerL=blade(.93,-.16,.46),outerR=blade(.93,.16,.46);
+      const a=phase+i*Math.PI/2,c=Math.cos(a),s=Math.sin(a);
+      const blade=(r,w,x)=>V(x,1.72+s*r+c*w,c*r-s*w);
+      const innerL=blade(.15,-.07,-.46),innerR=blade(.15,.07,-.46),outerL=blade(.93,-.16,-.46),outerR=blade(.93,.16,-.46);
       quad(innerL,outerL,outerR,innerR,i%2?'#ece4f3':'#fff5e7',.4);
-      quad(blade(.15,-.07,.38),blade(.93,-.16,.38),outerL,innerL,'#695c93',.26);
-      quad(blade(.93,-.16,.38),blade(.93,.16,.38),outerR,outerL,'#645183',.25);
-      tube([blade(.20,0,.48),blade(.82,0,.48)],.012,'#866da9',.2,6);
-      quad(blade(.72,-.13,.482),blade(.93,-.16,.482),blade(.93,.16,.482),blade(.72,.13,.482),'#e87b91',.48);
+      quad(blade(.15,-.07,-.38),blade(.93,-.16,-.38),outerL,innerL,'#695c93',.26);
+      quad(blade(.93,-.16,-.38),blade(.93,.16,-.38),outerR,outerL,'#645183',.25);
+      tube([blade(.20,0,-.48),blade(.82,0,-.48)],.012,'#866da9',.2,6);
+      quad(blade(.72,-.13,-.482),blade(.93,-.16,-.482),blade(.93,.16,-.482),blade(.72,.13,-.482),'#e87b91',.48);
     }
-    ellipsoid(0,1.72,.50,.16,.16,.08,'#859bc5',.81,12,16);ellipsoid(-.05,1.77,.566,.038,.038,.015,'#fff3d3',.86,8,11);
+    ellipsoid(-.50,1.72,0,.08,.16,.16,'#859bc5',.81,12,16);ellipsoid(-.566,1.77,-.05,.015,.038,.038,'#fff3d3',.86,8,11);
   }
   function riverCenter(z){return .18*Math.sin(Math.PI*z/3.2)+.07*Math.sin(3*Math.PI*z/3.2);}
   let liveBridgeSurface=null,liveBridgeGround=null;
@@ -745,7 +759,7 @@
       if(f.kind==='pad')withPose(f.x,ground,f.z,yaw,()=>modelPad(0));
       else if(f.kind==='bumper'&&!f.move)withPose(f.x,ground,f.z,0,modelBumper);
       else if(f.kind==='loop')withPose(f.x,ground,f.z,yaw,modelLoop);
-      else if(f.kind==='windmill')withPose(f.x,ground,f.z,0,modelWindmill);
+      else if(f.kind==='windmill')withPose(f.x,ground,f.z,yaw,modelWindmill);
       else if(f.kind==='cannon')withPose(f.x,ground,f.z,yaw,modelCannonBase);
     }
     if(layout.river)bridgePose(layout,()=>modelWaterBridge(0,false));
@@ -882,7 +896,7 @@
       const f=movingFeature?movingFeature(raw,featureTime):raw;
       const ground=groundAt(layout,f.x,f.z);
       if(f.kind==='bumper'&&raw.move)withPose(f.x,ground,f.z,0,modelBumper);
-      else if(f.kind==='windmill')withPose(f.x,ground,f.z,0,()=>modelWindmillRotor(featureTime+(f.phase-.4)/1.5));
+      else if(f.kind==='windmill')withPose(f.x,ground,f.z,courseYaw(layout,f.t),()=>modelWindmillRotor(featureTime+(f.phase-.4)/1.5));
       else if(f.kind==='cannon'){
         const active=shot?.cannon?.id===f.id?shot.cannon.currentDir:null;
         const tangent=tangentAt(layout,f.t),restAngle=Math.atan2(tangent.z,tangent.x)-.42;
@@ -903,7 +917,7 @@
       const family=ballFamily(progress?.equippedBall,state.ballStyle);
       withPose(ball.x,ball.y-.23,ball.z,0,()=>modelBall(family,0,.23,0,featureTime,ballShellColor(progress?.equippedBall,state.ballStyle)));
     }
-    const showClub=state.phase!=='running'||(shot&&state.stage?.time-shot.start<=450);
+    const showClub=!state.previewing&&(state.phase!=='running'||(shot&&state.stage?.time-shot.start<=450));
     if(showClub&&camera?.eye&&camera?.forward&&camera?.right&&camera?.up){
       const eye=camera.eye,forward=camera.forward,right=camera.right,up=camera.up;
       const x=eye.x+forward.x*1.82+right.x*.70-up.x*1.77;

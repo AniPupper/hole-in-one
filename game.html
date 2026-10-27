@@ -52,6 +52,7 @@
 
     <div class="course-badge"><span class="badge-pip"></span> MINIATURE WORLD NO. <span id="world-number">01</span></div>
     <div class="event-callout" id="event-callout" role="status" aria-live="polite"><span class="callout-icon" id="callout-icon">✦</span><div><span>THE COURSE SAYS</span><strong id="callout-text">You got this.</strong></div></div>
+    <div class="view-hint" id="view-hint" hidden>HOLD + DRAG TO CHANGE VIEW</div>
     <div class="wind-streaks" id="wind-streaks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
 
     <div class="shot-dock" id="shot-dock">
@@ -59,7 +60,19 @@
       <div class="power-track"><div class="power-fill" id="power-fill"></div><span class="power-tick one"></span><span class="power-tick two"></span><span class="power-tick three"></span></div>
       <div class="shot-bottom"><span>CLICK / TOUCH + PULL TO AIM</span><span>RELEASE TO SWING <b>↗</b></span></div>
       <div class="course-utility" aria-label="Course controls">
+        <button class="course-preview-button" id="course-preview-open" type="button"><span aria-hidden="true">◉</span> VIEW COURSE</button>
         <button class="tutorial-replay" id="tutorial-open" type="button" aria-haspopup="dialog" aria-controls="tutorial-overlay"><span aria-hidden="true">?</span> HOW TO PLAY</button>
+      </div>
+    </div>
+    <div class="preview-controls" id="preview-controls" hidden aria-label="Course preview controls">
+      <span class="preview-kicker">COURSE PREVIEW</span>
+      <span class="preview-help">Drag to rotate · Scroll to zoom · Shift + drag to pan</span>
+      <div class="preview-actions">
+        <button id="preview-back" type="button" aria-label="Move preview toward tee">← TEE</button>
+        <button id="preview-forward" type="button" aria-label="Move preview toward cup">CUP →</button>
+        <button id="preview-zoom-out" type="button" aria-label="Zoom out">−</button>
+        <button id="preview-zoom-in" type="button" aria-label="Zoom in">+</button>
+        <button id="preview-close" type="button">BACK TO SHOT ↗</button>
       </div>
     </div>
 
@@ -72,6 +85,7 @@
         <h2 id="celebration-title">IN ONE<span>!</span></h2>
         <p id="celebration-story">That ball knew exactly where it was going.</p>
         <div class="reward-line"><span>SHOT REWARD</span><strong id="reward-xp">+320 XP</strong></div>
+        <div class="tunnel-reward" id="tunnel-reward" hidden><span>WINDMILL TUNNEL BONUS</span><strong id="tunnel-reward-xp">+75 XP</strong></div>
         <div class="lifetime-line"><span>XP BALANCE</span><strong id="celebration-total">1,560 XP</strong></div>
         <div class="celebration-actions"><button id="next-hole" type="button">NEXT HOLE <span>↗</span></button><a href="index.html">VISIT THE SHOP</a></div>
       </div>
@@ -89,7 +103,7 @@
         </div>
         <div class="tutorial-steps">
           <article class="tutorial-step"><span class="tutorial-step-number">01</span><span class="tutorial-step-icon" aria-hidden="true">↗</span><h3>Pull back. Aim.</h3><p>Click or touch the course. Hold, pull back, point your club, then release.</p></article>
-          <article class="tutorial-step"><span class="tutorial-step-number">02</span><span class="tutorial-step-icon" aria-hidden="true">〰</span><h3>Watch the chaos.</h3><p>Your ball starts on your line. Wind, walls, and wild gadgets guide it home.</p></article>
+          <article class="tutorial-step"><span class="tutorial-step-number">02</span><span class="tutorial-step-icon" aria-hidden="true">〰</span><h3>Watch the chaos.</h3><p>Use View Course before swinging. During the shot, hold and drag to follow your ball from another angle.</p></article>
           <article class="tutorial-step"><span class="tutorial-step-number">03</span><span class="tutorial-step-icon" aria-hidden="true">✦</span><h3>Win. Upgrade.</h3><p>Earn XP. In the Pro Shop, tap <strong>Add to cart</strong>, then <strong>Purchase</strong> a club or ball.</p></article>
         </div>
         <div class="tutorial-reassurance"><strong>EARN XP. BUY GEAR.</strong><span>Bigger holes earn more XP. Save it or spend it on new gear.</span></div>

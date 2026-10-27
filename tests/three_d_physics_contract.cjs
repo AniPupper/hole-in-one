@@ -174,9 +174,9 @@ const coursePace = vm.runInContext(`(() => {
 })()`, context);
 const classicSeconds = coursePace.reduce((total, sample) => total + sample.classic, 0);
 const upgradedSeconds = coursePace.reduce((total, sample) => total + sample.upgraded, 0);
+console.log('Ball course pace: '+coursePace.map(x=>`${x.level}:${x.classic.toFixed(1)}/${x.upgraded.toFixed(1)}s`).join(' '));
 assert.ok(classicSeconds / upgradedSeconds > 1.18,
   'Classic White does not feel meaningfully slower across later courses');
-console.log('Ball course pace: '+coursePace.map(x=>`${x.level}:${x.classic.toFixed(1)}/${x.upgraded.toFixed(1)}s`).join(' '));
 
 const cannons = vm.runInContext(`(() => {
   let count=0,largestOffset=0,largestLevel=0,largestTurn=0;
@@ -209,3 +209,108 @@ assert.ok(cannons.largestTurn > .2, 'cannon barrel did not visibly turn');
 assert.ok(cannons.largestOffset < .5,
   `cannon launched outside fairway at hole ${cannons.largestLevel}: ${cannons.largestOffset.toFixed(2)}`);
 console.log(`Cannon aim OK: ${cannons.count} launches, largest lane overshoot ${cannons.largestOffset.toFixed(2)}`);
+
+const tunnel = vm.runInContext(`(() => {
+  setLayout(4);courseState={level:4,completed:false};
+  const feature=layout.features.find(f=>f.kind==='windmill');
+  if(!feature)throw Error('windmill test course missing');
+  const worldAt=(f,along,across)=>{
+    const d=pathTangent(f.t),n={x:-d.z,z:d.x};
+    return{x:f.x+d.x*along+n.x*across,z:f.z+d.z*along+n.z*across};
+  };
+  function enterAndExit(offset,height){
+    phase='ready';ball={...START};shot=null;updateCamera(1000);
+    startShot(60,{x:160,y:0});
+    const dir=pathTangent(feature.t);
+    shot.velocity={x:dir.x*3,y:0,z:dir.z*3};
+    const base=layout.heightAt(feature.x,feature.z);
+    let previous=worldAt(feature,-.68,offset);
+    for(let along=-.66;along<=.68;along+=.02){
+      const current=worldAt(feature,along,offset);
+      ball={...current,y:base+height};
+      windmillContact(feature,0,previous);
+      previous=current;
+    }
+    return{bonus:shot.tunnelBonus,awards:shot.tunnelAwards.size,entry:shot.tunnelEntries.size};
+  }
+  const pass=enterAndExit(0,BALL_RADIUS);
+  const side=enterAndExit(.24,BALL_RADIUS);
+  const over=enterAndExit(0,.9);
+  return{pass,side,over};
+})()`, context);
+assert.equal(tunnel.pass.bonus,75,'complete tunnel pass missed its XP bonus');
+assert.equal(tunnel.pass.awards,1,'tunnel award was not tracked once');
+assert.equal(tunnel.side.bonus,0,'passing beside the tunnel earned XP');
+assert.equal(tunnel.over.bonus,0,'passing above the tunnel earned XP');
+console.log('Windmill tunnel OK: full pass +75 XP, side and aerial passes +0 XP');
+
+const playableTunnel = vm.runInContext(`(() => {
+  for(const level of [4,6]){
+    setLayout(level);courseState={level,completed:false};
+    const feature=layout.features.find(f=>f.kind==='windmill');
+    const heading=Math.atan2(feature.z-START.z,feature.x-START.x);
+    for(const power of [35,50,65,80,100])for(let offset=-.4;offset<=.4001;offset+=.04){
+      phase='ready';ball={...START};shot=null;updateCamera(1000);
+      savedProgress.equipped='rookie';savedProgress.equippedBall='classic';
+      startShot(power,{x:160,y:0});
+      const speed=Math.hypot(shot.velocity.x,shot.velocity.z),angle=heading+offset;
+      shot.velocity.x=speed*Math.cos(angle);shot.velocity.z=speed*Math.sin(angle);
+      for(let i=0;i<120*18&&phase==='running'&&!shot.tunnelBonus;i++)stepPhysics(1/120);
+      if(shot?.tunnelBonus)return{level,power,offset,bonus:shot.tunnelBonus};
+    }
+  }
+  return null;
+})()`, context);
+assert.ok(playableTunnel,'no player-like tee shot reached a windmill tunnel');
+console.log(`Playable tunnel route OK: hole ${playableTunnel.level}, power ${playableTunnel.power}%, aim offset ${playableTunnel.offset.toFixed(2)} rad`);
+
+const cameraAndMole = vm.runInContext(`(() => {
+  setLayout(1);courseState={level:1,completed:false};
+  phase='ready';ball={...START};shot=null;updateCamera(1000);
+  startShot(75,{x:160,y:0});
+  for(let i=0;i<120&&phase==='running';i++)stepPhysics(1/120);
+  const earlyMole=!!shot?.mole?.active;
+  const p=layout.pathPoint(.4,0);
+  ball={x:p.x,y:layout.heightAt(p.x,p.z)+BALL_RADIUS,z:p.z};
+  shot.elapsed=1.5;updateCamera(1000);
+  const original={...camera.eye};
+  cameraOrbit.yaw=.55;cameraOrbit.pitch=.2;updateCamera(1000);
+  const changed={...camera.eye};
+  updateCamera(1000);
+  const kept={...camera.eye};
+  const d=pathTangent(.4);
+  shot.elapsed=5;shot.velocity={x:d.x*3,y:0,z:d.z*3};
+  shot.lastGust=5;shot.gustAt=null;shot.lastMole=-10;shot.mole=null;
+  for(let i=0;i<35&&phase==='running';i++)stepPhysics(1/120);
+  const lateMole=!!shot?.mole?.active;
+  ball={x:p.x,y:layout.heightAt(p.x,p.z)+BALL_RADIUS,z:p.z};
+  shot.elapsed=1.5;
+  shot.velocity={x:-d.x*3,y:0,z:-d.z*3};
+  shot.lastGust=shot.elapsed;shot.gustAt=null;shot.lastMole=-10;shot.mole=null;
+  for(let i=0;i<55&&phase==='running';i++)stepPhysics(1/120);
+  const riskyRescue=shot?.lastMole>1.5;
+  return{earlyMole,lateMole,shift:Math.hypot(original.x-changed.x,original.y-changed.y,original.z-changed.z),
+    drift:Math.hypot(changed.x-kept.x,changed.y-kept.y,changed.z-kept.z),riskyRescue};
+})()`, context);
+assert.equal(cameraAndMole.earlyMole,false,'mole appeared during a normal opening run');
+assert.equal(cameraAndMole.lateMole,false,'mole appeared solely because a healthy shot ran long');
+assert.ok(cameraAndMole.shift>.5,'camera drag angle did not change the view');
+assert.ok(cameraAndMole.drift<1e-9,'camera angle did not remain selected');
+assert.ok(cameraAndMole.riskyRescue,'sustained wrong-way travel did not trigger a rescue');
+console.log('Camera orbit and mole timing OK: perspective persists, normal route clear, wrong-way rescue activates');
+
+const preview = vm.runInContext(`(() => {
+  setLayout(6);courseState={level:6,completed:false};phase='ready';shot=null;ball={...START};
+  updateCamera(1000);const original={...camera.eye};
+  setPreview(true);updateCamera(1000);const opening={...camera.eye};
+  const moved=Math.hypot(opening.x-original.x,opening.y-original.y,opening.z-original.z);
+  previewCamera.focusT=.8;updateCamera(1000);
+  const traveled=Math.hypot(camera.eye.x-opening.x,camera.eye.y-opening.y,camera.eye.z-opening.z);
+  setPreview(false);updateCamera(1000);
+  return{moved,traveled,returned:Math.hypot(camera.eye.x-original.x,camera.eye.y-original.y,camera.eye.z-original.z),phase};
+})()`, context);
+assert.ok(preview.moved>1,'View Course did not change the camera');
+assert.ok(preview.traveled>1,'preview controls did not move along the hole');
+assert.ok(preview.returned<1e-9,'preview did not return to the tee camera');
+assert.equal(preview.phase,'ready','preview started a shot');
+console.log('Course preview OK: opens, moves along the hole, and returns without swinging');

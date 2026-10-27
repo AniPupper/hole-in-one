@@ -42,7 +42,8 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 - A fixed catalog of 250 course plans with bends, hills, and obstacles. Consecutive holes should feel distinct through different hill shapes, turns, and positions of their elements. Elements include launch pads, windmills, loops, cannons, bumpers, bridges, rivers, and moles. After hole 250, encore holes reuse the catalog with mirrored turns; mirroring is sufficient variety for this stage of the product.
 - Difficulty and spectacle increase over time. The first seven holes introduce elements gently, and later holes build longer chain reactions.
 - A typical swing-to-cup sequence should take about 10–20 seconds, leaving time for a satisfying route within a short play session.
-- A celebration with confetti and an XP award after each hole-in-one. The course supplies the main reward, with a small bonus for a distinctive route. The criteria for a distinctive route still need definition. The current power-based bonus should be replaced when route scoring is designed.
+- A celebration with confetti and an XP award after each hole-in-one. The course supplies the main reward, with a small bonus for a distinctive route. Passing all the way through a windmill tunnel currently earns a one-time 75 XP bonus; other route bonuses still need definition. The existing power-based bonus remains until route scoring is designed.
+- **Trial feature:** each windmill faces the local course direction, with its blade face across the fairway and a visible ground-level tunnel aligned with travel. A ball must enter the near end and exit the far end within the opening to earn the bonus; passing alongside or above it does not count. The bonus appears in an event callout and the hole-in-one reward breakdown. Keep or remove this feature after player testing.
 - When a ball enters a cannon, the barrel briefly turns toward a safe point farther along the course before firing. Its visible aim and launch velocity match, and the ball stays within the playable lane during the launch.
 - Equipped club and ball visibly affect the shot, including launch speed, height, bounce, spin, and roll. Classic White has a slower full-power launch; buying a ball gives a clear speed improvement, including for first-tier balls with a low roll stat. A player who keeps Classic White on later courses must still finish every hole, but their shot should feel noticeably slower than with upgraded gear. The first club upgrade should feel subtly but noticeably faster than the Rookie; later upgrades should also improve how quickly the ball moves through obstacles. The ball shows its equipped skin on the course. All gear must preserve the guaranteed first-stroke hole-in-one.
 - A WebGL2 3D course by default, with the classic canvas view as an automatic fallback when WebGL is unavailable.
@@ -60,11 +61,11 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 
 **Planned capabilities (in development)**
 - Further Pro Shop polish, including a receipt and a locker of owned items.
-- An optional **View course** button opens a free camera so the player can explore before the first stroke. During the shot, the camera follows the ball automatically, while the player can change the viewing angle. Once changed, the angle stays at the player's choice through the shot. The camera input controls still need definition.
+- A **View course** button opens a pre-shot camera preview. Players drag to rotate, scroll or use buttons to zoom, shift-drag to pan, and move between tee and cup with buttons or arrow/WASD keys. Back to Shot returns to the tee without swinging. During the shot, the camera follows the ball automatically. Holding and dragging on the course changes its viewing angle; the chosen angle stays in place for the rest of the shot.
 - A rolling animation for the ball.
 - Retuned shot power, so full power feels proportionally stronger.
-- Mole pop-up animations, and a fix for moles appearing outside the course.
-- A new tunnel element, with courses becoming progressively hillier and more complex.
+- Moles rise in response to a ball that is heading off course, moving away from the cup, or nearly stopped. They no longer appear just because a shot has lasted several seconds. If the predicted meeting point is outside the lane or the ball is too high, a wind rescue takes over.
+- Courses becoming progressively hillier and more complex.
 
 ## 4. Required Inputs
 
@@ -105,9 +106,9 @@ The product collects no personal information. No account, email address, or paym
 2. The player resumes the next saved hole or visits the shop to spend accumulated XP. Completed courses are not available for replay; progression moves forward only.
 
 **Flow D: Viewing the course (planned)**
-1. Before the first stroke, the player may select **View course** to explore with a free camera.
+1. Before the first stroke, the player may select **View course** to explore the hole and return to the tee without swinging.
 2. The player returns to the tee and takes the shot.
-3. The camera follows the moving ball automatically. The player can change the viewing angle, and that angle persists until the shot ends. The input control remains to be defined.
+3. The camera follows the moving ball automatically. Hold and drag on the course to change the viewing angle; that angle persists until the shot ends.
 
 ## 6. Constraints
 
