@@ -182,3 +182,77 @@
 .topbar-play:hover{background:#d87943;transform:translateY(-2px)}
 .topbar-play span{font-size:19px;line-height:1}
 @media(max-width:700px){.topbar-play{display:none}}
+
+/* Storefront cart stays reachable while the catalog scrolls. */
+.topbar-actions{display:flex;align-items:center;gap:12px}
+.topbar-cart{min-height:44px;display:inline-flex;align-items:center;gap:9px;padding:0 14px;border:1px solid #d5e1cd;border-radius:999px;background:#fffdf7;color:#245039;font-size:15px;font-weight:800;white-space:nowrap}
+.topbar-cart:hover{border-color:var(--selected-orange);color:#98421d}
+.topbar-cart strong{min-width:23px;height:23px;display:grid;place-items:center;border-radius:50%;background:var(--xp-yellow);color:var(--xp-ink);font:800 13px Outfit,sans-serif}
+.content-wrap{padding-bottom:140px}
+.selection-bar{position:fixed;bottom:14px;right:24px;z-index:10;width:min(640px,calc(100vw - 310px));max-width:none;margin:0;box-shadow:0 12px 30px rgba(32,68,41,.15)}
+.selection-info{align-items:center;flex-wrap:wrap;row-gap:4px}
+.selection-info #selected-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.selection-info .selection-price{margin-left:auto}
+/* The cart opens as a centered retail checkout modal. */
+#claim-modal{background:rgba(9,29,20,.55);backdrop-filter:blur(3px)}
+#claim-modal:not([hidden]){animation:cart-backdrop-in .24s ease-out both}
+#claim-modal:not([hidden]) .claim-dialog{animation:cart-pull-up .3s cubic-bezier(.2,.75,.25,1) both}
+@keyframes cart-backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes cart-pull-up{from{opacity:0;transform:translateY(28px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){#claim-modal:not([hidden]),#claim-modal:not([hidden]) .claim-dialog{animation:none}}
+#claim-modal .claim-dialog{width:min(720px,100%);max-height:calc(100dvh - 32px);border-radius:22px;padding:27px;text-align:left}
+#claim-modal .cart-golf-cart{position:absolute;top:14px;right:65px;width:116px;height:74px;pointer-events:none;transform:rotate(-4deg);filter:drop-shadow(0 5px 5px rgba(27,70,44,.13))}
+#claim-modal .cart-golf-cart svg{display:block;width:100%;height:100%}
+#claim-modal #claim-close{z-index:2}
+#claim-modal .claim-step{margin-right:48px}
+#claim-modal .claim-dialog h2{margin:10px 44px 7px 0}
+#claim-modal .claim-step,#claim-modal .claim-dialog h2{margin-right:165px}
+#claim-modal .claim-intro{margin:0 0 17px;max-width:none}
+#claim-modal .claim-dialog:not(.celebrating):not(.revealed) .claim-showcase{display:none}
+#claim-modal .claim-dialog.celebrating .claim-showcase,#claim-modal .claim-dialog.revealed .claim-showcase{margin-bottom:18px}
+#claim-modal .cart-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:13px 0 14px}
+#claim-modal .cart-item{min-width:0;padding:13px;border:1px solid #dfe6d5;border-radius:13px;background:#fffdf9}
+#claim-modal .cart-item-heading{margin-bottom:9px}
+.cart-preview{display:flex;align-items:center;gap:9px;min-height:60px;padding:6px;background:#f8f5eb;border-radius:10px}
+.cart-preview-art{width:50px;height:50px;min-height:0;flex:none;border-radius:8px;overflow:hidden;display:grid;place-items:center}
+.cart-preview-art.club-art svg{width:76px;height:58px;transform:rotate(-9deg)}
+.cart-preview-art.ball-art:after{display:none}
+.cart-preview-art.ball-art .ball-illustration{width:45px;height:45px}
+.cart-preview-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.cart-preview-copy strong{font:800 16px/1.15 Outfit,sans-serif;color:#214d34;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cart-preview-copy span{font-size:13px;font-weight:700;color:#6b846e}
+.cart-preview-empty{padding:0 8px;font-size:13px;font-weight:700;color:#778d79}
+.cart-remove{margin-left:auto;border:0;background:none;color:#a24925;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.cart-remove:hover{color:#71351b}
+#claim-modal .claim-cart-choices,#claim-modal .claim-ball-choices{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:9px}
+#claim-modal .cart-choice{min-height:40px}
+.pair-suggestion{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:0 0 14px;border:1px dashed #d89763;border-radius:12px;background:#fff2df}
+.pair-suggestion>div{display:flex;flex-direction:column;gap:2px}
+.pair-suggestion span{font-size:13px;font-weight:900;letter-spacing:.6px;color:#9a4b25}
+.pair-suggestion strong{font:800 17px/1.1 Outfit,sans-serif;color:#244b36}
+.pair-suggestion small{font-size:13px;color:#7d6c54}
+.pair-suggestion button{min-height:42px;flex:none;border:0;border-radius:8px;background:#bf5a2c;color:#fff;padding:0 15px;font-size:14px;font-weight:800}
+.pair-suggestion button:hover{background:#a94a22}
+#claim-modal .claim-receipt{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px;margin:0 0 14px}
+#claim-modal .claim-receipt span{min-width:0;padding:7px 8px}
+#claim-modal .claim-receipt strong{overflow-wrap:anywhere}
+#claim-modal .claim-actions{position:sticky;bottom:-27px;background:#faf9f1;padding:13px 0 6px;box-shadow:0 -8px 16px #faf9f1}
+#claim-modal .claim-actions button{min-height:48px}
+#claim-modal .claim-final{flex:2;min-width:0}
+#claim-modal .claim-final span{line-height:1.2}
+/* Artwork leads; rarity and comparison precede the detailed ratings. */
+.club-card .club-art{height:190px}
+.ball-card .ball-art{height:190px}
+.rarity-badge{flex:none;border-radius:999px;background:#e9dfcb;color:#73542e;padding:5px 8px;font-size:13px;font-weight:900;letter-spacing:.2px}
+.gear-comparison{margin:12px 0 9px;padding:9px 10px;border-radius:9px;background:#f2f6e9;border:1px solid #e0ead5}
+.gear-comparison>span{display:block;color:#617c62;font-size:13px;font-weight:900;letter-spacing:.4px;margin-bottom:5px}
+.gear-comparison>div{display:flex;flex-wrap:wrap;gap:5px}
+.gear-comparison b{font-size:13px;line-height:1.2;padding:4px 6px;border-radius:6px;background:#e2eadb;color:#49654b;white-space:nowrap}
+.gear-comparison .gain{background:#d8edcf;color:#25633c}
+.gear-comparison .tradeoff{background:#f5e7db;color:#8b5a3b}
+.club-card .card-tag,.ball-card .card-tag{display:inline-block;margin-top:5px}
+.club-card:disabled,.ball-card:disabled{opacity:1;cursor:default}
+.club-card:disabled:hover,.ball-card:disabled:hover{transform:none;box-shadow:0 4px 16px rgba(34,66,43,.04)}
+@media(max-width:900px) and (min-width:701px){.selection-bar{width:min(640px,calc(100vw - 130px))}}
+@media(max-width:700px){.content-wrap{padding-bottom:140px}.topbar{justify-content:flex-end}.breadcrumb{display:none}.topbar-actions{width:100%;justify-content:flex-end}.topbar-cart{min-height:42px}.selection-bar{position:fixed;bottom:8px;right:8px;width:calc(100vw - 16px);max-width:none;margin:0;padding:11px 12px;gap:9px}.selection-info{flex:1;min-width:0}.selection-info #selected-name{font-size:15px;max-width:100%}.selection-info .selection-price{font-size:14px;padding:6px 8px}.selection-bar-icon{display:none}.selection-bar .claim-button{width:auto;min-width:112px;min-height:44px;align-items:center;justify-content:center}.selection-bar .claim-button span:last-child{display:none}#claim-modal .claim-dialog{padding:20px;max-height:calc(100dvh - 16px)}#claim-modal .cart-golf-cart{width:82px;height:54px;right:54px;top:13px}#claim-modal .claim-step,#claim-modal .claim-dialog h2{margin-right:105px}#claim-modal .cart-items{grid-template-columns:1fr}#claim-modal .claim-actions{bottom:-20px}.club-card .club-art,.ball-card .ball-art{height:100%;min-height:220px}}
+@media(max-width:420px){.selection-bar{flex-wrap:nowrap}.selection-caption{width:100%}.selection-info .selection-price{margin-left:0}#claim-modal .claim-receipt{grid-template-columns:repeat(2,minmax(0,1fr))}#claim-modal .claim-receipt span:first-child{grid-column:1/-1}#claim-modal .claim-actions{flex-direction:column-reverse}#claim-modal .claim-actions button{width:100%}}

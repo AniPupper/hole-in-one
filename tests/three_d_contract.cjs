@@ -1,6 +1,6 @@
 'use strict';
 
-// Headless geometry check for the opt-in course renderer. This exercises the
+// Headless geometry check for the main course renderer. This exercises the
 // real mesh builder and its public render API without opening a local browser.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

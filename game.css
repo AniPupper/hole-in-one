@@ -133,13 +133,9 @@
   .shot-bottom{line-height:1.1}
 }
 
-/* An opt-in WebGL course sits behind the transparent aim/effects canvas. */
+/* The WebGL course sits behind the transparent aim/effects canvas. */
 #scene-3d{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .game-shell.render-3d #scene-3d{display:block}
 .game-shell.render-3d #scene{z-index:1}
 .shot-dock .course-utility{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
-.shot-dock .course-utility .tutorial-replay,.shot-dock .course-utility .render-toggle{min-width:0;min-height:44px;justify-content:center}
-.render-toggle{display:flex;align-items:center;gap:5px;padding:0 10px;border:2px solid #cb7046;border-radius:999px;background:#bc5c32;color:#fff9eb;box-shadow:0 4px 0 #804227,0 12px 22px #3c513a33;font:800 12px/1 'DM Sans',sans-serif;letter-spacing:.25px;white-space:nowrap;text-align:center;transition:transform .2s,box-shadow .2s}
-.render-toggle:hover{transform:translateY(-2px);box-shadow:0 6px 0 #804227,0 15px 22px #3c513a33}
-.render-toggle:focus-visible{outline:3px solid #ffdb67;outline-offset:3px}
-.render-toggle span{font-size:16px}
+.shot-dock .course-utility .tutorial-replay{min-width:0;min-height:44px;justify-content:center}

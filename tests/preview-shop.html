@@ -34,8 +34,8 @@
     if (!Number.isInteger(tier) || tier < 1 || tier > 1000) return;
     const clubs = [1000, 2600, 5200, 9000, 15000, 24000];
     const balls = [900, 2400, 5000, 8500, 14500, 23000];
-    const threshold = tier <= 6 ? Math.max(clubs[tier - 1], balls[tier - 1])
-      : Math.max(GearProgression.threshold('club', tier), GearProgression.threshold('ball', tier));
+    const threshold = tier <= 6 ? clubs[tier - 1] + balls[tier - 1]
+      : GearProgression.threshold('club', tier) + GearProgression.threshold('ball', tier);
     const key = 'hole-in-one-progress-v1';
     let saved;
     try { saved = JSON.parse(localStorage.getItem(key)); } catch (_) {}

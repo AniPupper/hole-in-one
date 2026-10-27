@@ -1,6 +1,6 @@
 'use strict';
 
-// Contact checks at the places where the opt-in 3D course changes grade.
+// Contact checks at the places where the 3D course changes grade.
 // These call the actual game physics in a headless host, without a browser.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -136,3 +136,76 @@ assert.ok(feel.full.earlyTravel / feel.half.earlyTravel > 1.8,
 console.log(`3D feel OK: max lateral height difference ${feel.widest.toFixed(3)}, ` +
   `100%/50% speed ${(feel.full.initial / feel.half.initial).toFixed(2)}×, ` +
   `early travel ${(feel.full.earlyTravel / feel.half.earlyTravel).toFixed(2)}×`);
+
+const ballLaunch = vm.runInContext(`(() => {
+  function measure(id){
+    setLayout(1);courseState={level:1,completed:false};
+    phase='ready';ball={...START};shot=null;updateCamera(1000);
+    savedProgress.equipped='rookie';savedProgress.equippedBall=id;
+    startShot(100,{x:160,y:0});
+    const speed=Math.hypot(shot.velocity.x,shot.velocity.z),origin={...ball};
+    for(let i=0;i<24;i++)stepPhysics(1/120);
+    return{speed,travel:Math.hypot(ball.x-origin.x,ball.z-origin.z)};
+  }
+  return{classic:measure('classic'),upgrades:['sunburst','tidal','spark'].map(measure)};
+})()`, context);
+for(const upgrade of ballLaunch.upgrades){
+  assert.ok(upgrade.speed / ballLaunch.classic.speed > 1.15,
+    'first-tier ball does not clearly improve full-power launch speed');
+  assert.ok(upgrade.travel / ballLaunch.classic.travel > 1.1,
+    'first-tier ball does not cover more ground early in the shot');
+}
+console.log(`Starter ball pace OK: first-tier launch is at least ${(Math.min(...ballLaunch.upgrades.map(x=>x.speed)) / ballLaunch.classic.speed).toFixed(2)}× Classic White`);
+
+const coursePace = vm.runInContext(`(() => {
+  function trace(level,id){
+    setLayout(level);courseState={level,completed:false};
+    phase='ready';ball={...START};shot=null;updateCamera(1000);
+    savedProgress.equipped='rookie';savedProgress.equippedBall=id;
+    startShot(100,{x:160,y:0});
+    let steps=0;
+    for(;steps<120*60&&phase==='running';steps++)stepPhysics(1/120);
+    if(phase!=='complete')throw Error(id+' failed to finish hole '+level);
+    return steps/120;
+  }
+  const samples=[10,20,50,100,150,200,250].map(level=>({level,
+    classic:trace(level,'classic'),upgraded:trace(level,'spark')}));
+  return samples;
+})()`, context);
+const classicSeconds = coursePace.reduce((total, sample) => total + sample.classic, 0);
+const upgradedSeconds = coursePace.reduce((total, sample) => total + sample.upgraded, 0);
+assert.ok(classicSeconds / upgradedSeconds > 1.18,
+  'Classic White does not feel meaningfully slower across later courses');
+console.log('Ball course pace: '+coursePace.map(x=>`${x.level}:${x.classic.toFixed(1)}/${x.upgraded.toFixed(1)}s`).join(' '));
+
+const cannons = vm.runInContext(`(() => {
+  let count=0,largestOffset=0,largestLevel=0,largestTurn=0;
+  for(let level=1;level<=250;level++){
+    setLayout(level);courseState={level,completed:false};
+    for(const feature of layout.features.filter(f=>f.kind==='cannon')){
+      phase='ready';ball={...START};shot=null;updateCamera(1000);
+      startShot(60,{x:160,y:0});
+      ball={x:feature.x,y:layout.heightAt(feature.x,feature.z)+BALL_RADIUS,z:feature.z};
+      shot.velocity={x:4,z:0,y:0};
+      contactCannon(feature);
+      if(!shot.cannon)throw Error('cannon failed to load at hole '+level);
+      const initial=shot.cannon.currentDir;
+      for(let i=0;i<110&&shot?.cannon?.stage!=='fired';i++)stepPhysics(1/120);
+      if(shot?.cannon?.stage!=='fired')throw Error('cannon failed to fire at hole '+level);
+      const aimed=shot.cannon.currentDir;
+      largestTurn=Math.max(largestTurn,Math.abs(Math.atan2(initial.x*aimed.z-initial.z*aimed.x,initial.x*aimed.x+initial.z*aimed.z)));
+      for(let i=0;i<110&&phase==='running';i++){
+        stepPhysics(1/120);
+        const lane=nearestPath(ball.x,ball.z),offset=Math.abs(lane.across)-layout.corridorHalfWidth(lane.t);
+        if(offset>largestOffset){largestOffset=offset;largestLevel=level;}
+      }
+      count++;
+    }
+  }
+  return{count,largestOffset,largestLevel,largestTurn};
+})()`, context);
+assert.ok(cannons.count > 100, 'too few cannon samples');
+assert.ok(cannons.largestTurn > .2, 'cannon barrel did not visibly turn');
+assert.ok(cannons.largestOffset < .5,
+  `cannon launched outside fairway at hole ${cannons.largestLevel}: ${cannons.largestOffset.toFixed(2)}`);
+console.log(`Cannon aim OK: ${cannons.count} launches, largest lane overshoot ${cannons.largestOffset.toFixed(2)}`);

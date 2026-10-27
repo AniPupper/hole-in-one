@@ -164,14 +164,21 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 resize();
-if(/(?:^|[?&])render=3d(?:&|$)/.test(window.location?.search||'')&&window.Game3D?.create){
+function useClassicRenderer(error){
+  if(error)console.warn('3D course unavailable; using classic view.',error);
+  renderer3D=null;
+  gameShell.classList.remove('render-3d');
+}
+const scene3D=document.getElementById('scene-3d');
+scene3D.addEventListener('webglcontextlost',event=>{
+  event.preventDefault();
+  useClassicRenderer(new Error('WebGL context lost'));
+});
+if(window.Game3D?.create){
   try{
-    renderer3D=window.Game3D.create(document.getElementById('scene-3d'));
-    renderer3D.resize();
-    gameShell.classList.add('render-3d');
-    const toggle=$('render-toggle');
-    if(toggle){toggle.href='./game.html';toggle.textContent='CLASSIC VIEW ↗';}
-  }catch(error){console.warn('3D course unavailable; using classic view.',error);renderer3D=null;}
+    renderer3D=window.Game3D.create(scene3D);
+    if(renderer3D){renderer3D.resize();gameShell.classList.add('render-3d');}
+  }catch(error){useClassicRenderer(error);}
 }
 updateHud();
 window.addEventListener('pageshow',()=>{savedProgress=readProgress();updateHud();});
@@ -582,7 +589,7 @@ function drawLoop(feature){
 }
 function drawCannon(feature){
   const {x,z}=feature,ground=layout.heightAt(x,z);
-  const dir=pathTangent(feature.t),side={x:-dir.z,z:dir.x};
+  const dir=cannonVisibleDirection(feature),side={x:-dir.z,z:dir.x};
   ellipseWorld(x,ground+.012,z,.99,.75,'#24363366');
   raisedDisc(x,z,ground,.88,.65,.07,'#544c3b','#b47950','#f8dcaa');
   ellipseWorld(x,ground+.077,z,.63,.49,'#bb6d43','#eec48d',2);
@@ -988,10 +995,14 @@ function frame(now){
   if(phase==='running')updateShot(Math.min(.12,frameMs/1000));else stage.featureTime=now/1000;
   updateCamera(now);
   if(renderer3D){
-    renderer3D.render({layout,camera,ball,shot,progress:savedProgress,featureTime:stage.featureTime,
-      stage,movingFeature,phase,courseState,riverCenter,bridgeDeckHeight,cupBowlDrop,courseSurfaceAt,
-      ballStyle:window.BallUpgrades?.get(savedProgress.equippedBall),
-      clubStyle:clubAppearance(savedProgress.equipped)});
+    try{
+      renderer3D.render({layout,camera,ball,shot,progress:savedProgress,featureTime:stage.featureTime,
+        stage,movingFeature,phase,courseState,riverCenter,bridgeDeckHeight,cupBowlDrop,courseSurfaceAt,
+        ballStyle:window.BallUpgrades?.get(savedProgress.equippedBall),
+        clubStyle:clubAppearance(savedProgress.equipped)});
+    }catch(error){useClassicRenderer(error);}
+  }
+  if(renderer3D){
     ctx.clearRect(0,0,stage.width,stage.height);
     drawRescueEffect(now);drawAim();drawParticles(dt);
   }else{
@@ -1062,7 +1073,9 @@ function ballPhysicsProfile(id){
     wallRestitution:.73+b*.15,
     bumperRestitution:.79+b*.10,
     groundRestitution:.22+b*.11,
-    launchMultiplier:1+r*.25,
+    // Classic White is a deliberately slower starter. Every purchased ball
+    // restores a quicker full-power launch, even if its roll stat is low.
+    launchMultiplier:id==='classic'?.82:1+r*.16,
     dragMultiplier:1-r*.16,
     spinRate:sp*.10,
     liftMultiplier:1+b*.16
@@ -1145,12 +1158,17 @@ function contactCannon(feature){
   const base=layout.heightAt(feature.x,feature.z);
   const loc=localCoordinates(feature,ball.x,ball.z);
   if((loc.along/.64)**2+(loc.across/.5)**2>1||ball.y>base+.08+BALL_RADIUS+.035)return;
-  const dir=pathTangent(feature.t);
-  const rear={x:feature.x-dir.x*.47,y:base+.56,z:feature.z-dir.z*.47};
-  const muzzle={x:feature.x+dir.x*.59,y:base+.73,z:feature.z+dir.z*.59};
-  shot.cannon={id:feature.id,startedAt:shot.elapsed,duration:.55,stage:'loading',
-    feature:{x:feature.x,z:feature.z,t:feature.t},capture:{...ball},rear,muzzle,dir,
-    entrySpeed:Math.hypot(shot.velocity.x,shot.velocity.z)};
+  const entrySpeed=Math.hypot(shot.velocity.x,shot.velocity.z);
+  const remainingX=Math.max(.8,CUP.x-feature.x);
+  const speed=Math.min(8.2,Math.max(3.2,entrySpeed+2.2),remainingX/.69);
+  const targetT=Math.min(1,feature.t+Math.max(.08,speed*.69/layout.span));
+  const target=layout.pathPoint(targetT);
+  const dx=target.x-feature.x,dz=target.z-feature.z,n=Math.hypot(dx,dz)||1;
+  const dir={x:dx/n,z:dz/n};
+  const startDir=cannonRestDirection(feature.t);
+  shot.cannon={id:feature.id,startedAt:shot.elapsed,duration:.72,stage:'loading',
+    feature:{x:feature.x,z:feature.z,t:feature.t},capture:{...ball},
+    base,dir,startDir,currentDir:startDir,speed,entrySpeed};
   shot.usedBoosts.add(feature.id);
   shot.velocity.x=0;shot.velocity.y=0;shot.velocity.z=0;
   shot.windActive=false;shot.riverActive=false;
@@ -1158,19 +1176,33 @@ function contactCannon(feature){
 }
 function advanceCannon(){
   const c=shot.cannon,age=shot.elapsed-c.startedAt;
-  const from=age<.16?c.capture:age<.34?c.rear:c.muzzle;
-  const to=age<.16?c.rear:c.muzzle;
+  const fromAngle=Math.atan2(c.startDir.z,c.startDir.x),toAngle=Math.atan2(c.dir.z,c.dir.x);
+  const difference=Math.atan2(Math.sin(toAngle-fromAngle),Math.cos(toAngle-fromAngle));
+  const turn=smooth(Math.max(0,Math.min(1,(age-.16)/.40)));
+  const angle=fromAngle+difference*turn;
+  c.currentDir={x:Math.cos(angle),z:Math.sin(angle)};
+  const rear={x:c.feature.x-c.currentDir.x*.47,y:c.base+.56,z:c.feature.z-c.currentDir.z*.47};
+  const muzzle={x:c.feature.x+c.currentDir.x*.59,y:c.base+.73,z:c.feature.z+c.currentDir.z*.59};
+  c.muzzle=muzzle;
+  const from=age<.16?c.capture:age<.38?rear:muzzle;
+  const to=age<.16?rear:muzzle;
   const t=age<.16?smooth(Math.max(0,age/.16)):
-    age<.34?smooth((age-.16)/.18):1;
+    age<.38?smooth((age-.16)/.22):1;
   ball.x=mix(from.x,to.x,t);ball.y=mix(from.y,to.y,t);ball.z=mix(from.z,to.z,t);
-  c.stage=age<.34?'loading':'chambered';
+  c.stage=age<.56?'loading':'chambered';
   if(age>=c.duration){
     c.stage='fired';c.firedAt=shot.elapsed;
-    const speed=Math.max(4.2,c.entrySpeed+3.7);
-    shot.velocity.x=c.dir.x*speed;shot.velocity.z=c.dir.z*speed;
+    shot.velocity.x=c.dir.x*c.speed;shot.velocity.z=c.dir.z*c.speed;
     shot.velocity.y=3*shot.ballProfile.liftMultiplier;
     contactEvent('cannon',c.muzzle.x,c.muzzle.z,'CANNON FIRED','✹');
   }
+}
+function cannonRestDirection(t){
+  const tangent=pathTangent(t),angle=Math.atan2(tangent.z,tangent.x)-.42;
+  return{x:Math.cos(angle),z:Math.sin(angle)};
+}
+function cannonVisibleDirection(feature){
+  return shot?.cannon?.id===feature.id?shot.cannon.currentDir:cannonRestDirection(feature.t);
 }
 function contactLoop(feature){
   if(shot.usedBoosts.has(feature.id))return;

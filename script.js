@@ -1,9 +1,10 @@
 const STORAGE_KEY = 'hole-in-one-progress-v1';
+const CART_KEY = 'hole-in-one-cart-v1';
 const balls = window.BallUpgrades.catalog;
 const ballTiers = window.BallUpgrades.tiers;
 
 const clubs = {
-  rookie: { name: 'The Rookie', description: 'Everyone starts somewhere.', icon: '✦' },
+  rookie: { name: 'The Rookie', description: 'Everyone starts somewhere.', stats: [4, 4, 4], icon: '✦' },
   meteor: { name: 'The Comet', description: 'A little extra distance. A lot more drama.', type: 'POWER DRIVER', tag: 'FAN FAVORITE', art: 'meteor', color: '#d97242', grip: '#8b502e', stats: [7, 4, 3], icon: '✷' },
   cloud: { name: 'Cloud Nine', description: 'For shots that prefer the scenic route.', type: 'SKY WEDGE', tag: 'AIR TIME', art: 'cloud', color: '#60a8b6', grip: '#447c85', stats: [5, 8, 4], icon: '☁' },
   lightning: { name: 'The Spark', description: 'Blink and you might miss the magic.', type: 'TRICK IRON', tag: 'WILD CARD', art: 'lightning', color: '#9a6cad', grip: '#6c4c86', stats: [6, 5, 8], icon: 'ϟ' },
@@ -59,6 +60,21 @@ let modalReturnFocus = null;
 let claimRevealTimer = null;
 let claimSelectedId = null;
 let cartBallId = null;
+
+function restoreCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY));
+    if (!saved) return;
+    if (!allClaimed() && tiers[currentTierIndex()].choices.includes(saved.club)) claimSelectedId = saved.club;
+    if (!allBallsClaimed() && ballTiers[currentBallTierIndex()].choices.includes(saved.ball)) cartBallId = saved.ball;
+  } catch (_) { /* An unavailable or old cart should not block the shop. */ }
+}
+function saveCart() {
+  try {
+    if (claimSelectedId || cartBallId) localStorage.setItem(CART_KEY, JSON.stringify({ club: claimSelectedId, ball: cartBallId }));
+    else localStorage.removeItem(CART_KEY);
+  } catch (_) { /* Keep this session's cart usable without storage. */ }
+}
 
 function loadProgress() {
   try {
@@ -128,6 +144,14 @@ function clubArtwork(club) {
 function statRow(label, value) {
   return `<div class="stat-row"><span>${label}</span><strong class="stat-number">${value}</strong></div>`;
 }
+function rarityLabel(item, tierIndex) {
+  const labels = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY', 'MYTHIC', 'CELESTIAL', 'STELLAR', 'COSMIC', 'ETERNAL', 'INFINITE'];
+  return labels[Math.min(labels.length - 1, Math.max(0, (item.rarity || tierIndex + 1) - 1))];
+}
+function comparisonMarkup(item, equipped, labels) {
+  const deltas = item.stats.map((value, i) => value - equipped.stats[i]);
+  return `<div class="gear-comparison"><span>VS ${equipped.name.toUpperCase()}</span><div>${deltas.map((delta, i) => `<b class="${delta > 0 ? 'gain' : delta < 0 ? 'tradeoff' : 'same'}" aria-label="${labels[i]} ${delta > 0 ? 'plus' : delta < 0 ? 'minus' : 'same'} ${Math.abs(delta)}">${delta > 0 ? '+' : delta < 0 ? '−' : '='}${Math.abs(delta)} ${labels[i]}</b>`).join('')}</div></div>`;
+}
 function priceBadge(value) {
   return value >= 1000000 ? `${(value / 1000000).toFixed(1).replace(/\.0$/, '')}M XP` : `${value.toLocaleString()} XP`;
 }
@@ -137,6 +161,8 @@ function render() {
   const tier = tiers[tierIndex];
   const unlocked = progress.xp >= tier.threshold;
   const complete = allClaimed();
+  if (claimSelectedId && (complete || !tier.choices.includes(claimSelectedId))) claimSelectedId = null;
+  if (cartBallId && (allBallsClaimed() || !ballTiers[currentBallTierIndex()].choices.includes(cartBallId))) cartBallId = null;
   if (complete) selectedId = progress.equipped;
   else if (!tier.choices.includes(selectedId)) selectedId = tier.choices[0];
 
@@ -171,12 +197,13 @@ function render() {
   const grid = document.getElementById('club-grid');
   grid.innerHTML = tier.choices.map((id, index) => {
     const club = clubs[id];
-    const selected = selectedId === id;
-    return `<button class="club-card ${selected ? 'selected' : ''} ${unlocked && !complete ? 'available' : ''} ${!unlocked && !complete ? 'locked' : ''}" type="button" data-club="${id}" aria-pressed="${selected}" ${complete ? 'disabled' : ''}>
+    const selected = claimSelectedId === id;
+    return `<button class="club-card ${selected ? 'selected' : ''} ${unlocked && !complete ? 'available' : ''} ${!unlocked && !complete ? 'locked' : ''}" type="button" data-club="${id}" aria-pressed="${selected}" ${complete || !unlocked ? 'disabled' : ''}>
       <div class="club-art ${club.art}" ${club.rank ? `style="--club-color:${club.color};--club-grip:${club.grip}"` : ''}><span class="price-badge" title="${tier.threshold.toLocaleString()} XP">${priceBadge(tier.threshold)}</span><span class="art-spark one">✦</span><span class="art-spark two">✳</span>${clubArtwork(club)}<span class="card-check">${selected ? '✓' : ''}</span></div>
-      <div class="card-body"><div class="card-row"><span class="card-kicker">${club.type}</span><span class="card-tag">${club.tag}</span></div><h3>${club.name}</h3>
+      <div class="card-body"><div class="card-row"><span class="card-kicker">${club.type}</span><span class="rarity-badge">${rarityLabel(club, tierIndex)}</span></div><h3>${club.name}</h3><span class="card-tag">${club.tag}</span>
+        ${comparisonMarkup(club, clubs[progress.equipped], ['DIST', 'HEIGHT', 'TRICKS'])}
         ${statRow('DISTANCE', club.stats[0])}${statRow('HEIGHT', club.stats[1])}${statRow('TRICKS', club.stats[2])}
-        <div class="card-bottom"><span>${complete ? progress.owned.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : unlocked ? 'ADD TO CART' : `<span class="xp-inline">${Math.max(0, tier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`}</span><span class="card-arrow">↗</span></div>
+        <div class="card-bottom"><span>${complete ? progress.owned.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART' : unlocked ? 'ADD TO CART' : `<span class="xp-inline">${Math.max(0, tier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`}</span><span class="card-arrow">↗</span></div>
       </div></button>`;
   }).join('');
   grid.querySelectorAll('[data-club]').forEach((button) => button.addEventListener('click', () => {
@@ -187,14 +214,6 @@ function render() {
       grid.querySelector(`[data-club="${selectedId}"]`).focus();
     }
   }));
-
-  const selected = clubs[selectedId];
-  document.querySelector('.selection-caption').textContent = complete ? 'CURRENTLY EQUIPPED' : unlocked ? 'YOUR PICK' : 'UP NEXT';
-  document.getElementById('selected-name').textContent = selected.name;
-  document.getElementById('selection-price').textContent = complete ? 'UNLOCKED' : `${tier.threshold.toLocaleString()} XP`;
-  const claimButton = document.getElementById('claim-button');
-  claimButton.disabled = complete || !unlocked;
-  claimButton.querySelector('span:first-child').textContent = complete ? 'New drop coming soon' : unlocked ? 'Add to cart' : 'Keep swinging';
 
   const ballTierIndex = currentBallTierIndex();
   const ballTier = ballTiers[ballTierIndex];
@@ -208,15 +227,29 @@ function render() {
   const ballGrid = document.getElementById('ball-grid');
   ballGrid.innerHTML = ballTier.choices.map((id) => {
     const item = balls[id];
-    const selected = selectedBallId === id;
-    const state = ballsComplete ? progress.ownedBalls.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : ballsUnlocked ? 'ADD TO CART' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`;
-    return `<button class="ball-card ${selected ? 'selected' : ''} ${ballsUnlocked ? 'available' : 'locked'}" type="button" data-ball="${id}" aria-pressed="${selected}" ${ballsComplete ? 'disabled' : ''}><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="card-tag">${item.tag}</span></div><h3>${item.name}</h3><div class="ball-stats">${statRow('BOUNCE', item.stats[0])}${statRow('SPIN', item.stats[1])}${statRow('ROLL', item.stats[2])}</div><div class="card-bottom"><span>${state}</span><span class="card-arrow">↗</span></div></div></button>`;
+    const selected = cartBallId === id;
+    const state = ballsComplete ? progress.ownedBalls.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART' : ballsUnlocked ? 'ADD TO CART' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`;
+    return `<button class="ball-card ${selected ? 'selected' : ''} ${ballsUnlocked ? 'available' : 'locked'}" type="button" data-ball="${id}" aria-pressed="${selected}" ${ballsComplete || !ballsUnlocked ? 'disabled' : ''}><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="rarity-badge">${rarityLabel(item, ballTierIndex)}</span></div><h3>${item.name}</h3><span class="card-tag">${item.tag}</span>${comparisonMarkup(item, balls[progress.equippedBall], ['BOUNCE', 'SPIN', 'ROLL'])}<div class="ball-stats">${statRow('BOUNCE', item.stats[0])}${statRow('SPIN', item.stats[1])}${statRow('ROLL', item.stats[2])}</div><div class="card-bottom"><span>${state}</span><span class="card-arrow">↗</span></div></div></button>`;
   }).join('');
   ballGrid.querySelectorAll('[data-ball]').forEach((button) => button.addEventListener('click', () => {
     selectedBallId = button.dataset.ball;
     if (ballsUnlocked) openClaimCart(null, selectedBallId);
     else { render(); ballGrid.querySelector(`[data-ball="${selectedBallId}"]`)?.focus(); }
   }));
+  renderCartSummary();
+}
+
+function renderCartSummary() {
+  const count = Number(!!claimSelectedId) + Number(!!cartBallId);
+  const total = (claimSelectedId ? tiers[currentTierIndex()].threshold : 0) + (cartBallId ? ballTiers[currentBallTierIndex()].threshold : 0);
+  const names = [claimSelectedId && clubs[claimSelectedId].name, cartBallId && balls[cartBallId].name].filter(Boolean);
+  document.getElementById('selected-name').textContent = names.join(' + ') || 'Your cart is empty';
+  document.getElementById('selection-price').textContent = `${total.toLocaleString()} XP`;
+  document.querySelector('.selection-caption').textContent = `${count} ITEM${count === 1 ? '' : 'S'} IN CART`;
+  document.getElementById('topbar-cart-count').textContent = count;
+  document.getElementById('topbar-cart').setAttribute('aria-label', `Open cart, ${count} item${count === 1 ? '' : 's'}`);
+  document.getElementById('claim-button').querySelector('span:first-child').textContent = 'View cart';
+  saveCart();
 }
 
 function showToast(message) {
@@ -250,20 +283,15 @@ function openClaimCart(clubId = null, ballId = null) {
   const ballTier = ballTiers[currentBallTierIndex()];
   const canClub = !allClaimed() && progress.xp >= clubTier.threshold;
   const canBall = !allBallsClaimed() && progress.xp >= ballTier.threshold;
-  claimSelectedId = canClub && clubTier.choices.includes(clubId) ? clubId : null;
-  cartBallId = canBall && ballTier.choices.includes(ballId) ? ballId : null;
-  // A club and ball fit in the same two-click purchase when the balance covers both.
-  if (claimSelectedId && !cartBallId && canBall && progress.xp >= clubTier.threshold + ballTier.threshold)
-    cartBallId = ballTier.choices.includes(selectedBallId) ? selectedBallId : ballTier.choices[0];
-  else if (cartBallId && !claimSelectedId && canClub && progress.xp >= clubTier.threshold + ballTier.threshold)
-    claimSelectedId = clubTier.choices.includes(selectedId) ? selectedId : clubTier.choices[0];
-  if (!claimSelectedId && !cartBallId) return;
+  if (clubId && canClub && clubTier.choices.includes(clubId)) claimSelectedId = clubId;
+  if (ballId && canBall && ballTier.choices.includes(ballId)) cartBallId = ballId;
+  render();
 
   const dialog = document.querySelector('#claim-modal .claim-dialog');
   dialog.classList.remove('celebrating', 'revealed');
   document.getElementById('claim-close').setAttribute('aria-label', 'Close cart');
-  document.getElementById('claim-title').textContent = 'Ready to roll?';
-  document.getElementById('claim-intro').textContent = 'Choose your gear. Spend XP. Take it to the course.';
+  document.getElementById('claim-title').textContent = 'Your cart.';
+  document.getElementById('claim-intro').textContent = 'Review your gear and XP before buying.';
   const clubChoices = document.getElementById('claim-cart-choices');
   clubChoices.innerHTML = canClub
     ? `<button class="cart-choice cart-none" type="button" data-cart-club="" aria-pressed="false">No club</button>${clubTier.choices.map(id => `<button class="cart-choice" type="button" data-cart-club="${id}" aria-pressed="false">${clubs[id].name}</button>`).join('')}`
@@ -282,7 +310,7 @@ function openClaimCart(clubId = null, ballId = null) {
   ballChoices.hidden = false;
   renderCart();
   showModal('claim-modal');
-  document.getElementById('claim-confirm').focus();
+  (claimSelectedId || cartBallId ? document.getElementById('claim-confirm') : document.getElementById('claim-close')).focus();
 }
 
 function updateCartChoice(id) {
@@ -305,16 +333,33 @@ function renderCart() {
   const ballCost = cartBallId ? ballTiers[currentBallTierIndex()].threshold : 0;
   const needed = clubCost + ballCost;
   document.getElementById('claim-intro').textContent = itemCount === 2
-    ? 'Two upgrades. One satisfying checkout.'
-    : 'Your next upgrade is one tap away.';
+    ? 'Two upgrades. One checkout.'
+    : itemCount ? 'Your next upgrade is ready.' : 'Your cart is empty. Choose gear from the shop.';
   document.getElementById('claim-step').textContent = `YOUR CART / ${itemCount} ITEM${itemCount === 1 ? '' : 'S'}`;
   document.getElementById('claim-art').innerHTML = `<div class="cart-art-pair">${claimSelectedId ? `<div class="cart-art-club">${clubArtwork(clubs[claimSelectedId])}</div>` : ''}${cartBallId ? `<div class="cart-art-ball">${window.BallUpgrades.artwork(cartBallId)}</div>` : ''}</div>`;
+  document.getElementById('cart-club-preview').innerHTML = claimSelectedId
+    ? `<div class="cart-preview-art club-art ${clubs[claimSelectedId].art}" ${clubs[claimSelectedId].rank ? `style="--club-color:${clubs[claimSelectedId].color};--club-grip:${clubs[claimSelectedId].grip}"` : ''}>${clubArtwork(clubs[claimSelectedId])}</div><div class="cart-preview-copy"><strong>${clubs[claimSelectedId].name}</strong><span>${clubs[claimSelectedId].type}</span></div><button type="button" class="cart-remove" data-remove-club aria-label="Remove ${clubs[claimSelectedId].name} from cart">Remove</button>`
+    : '<span class="cart-preview-empty">No club selected</span>';
+  document.getElementById('cart-ball-preview').innerHTML = cartBallId
+    ? `<div class="cart-preview-art ball-art">${window.BallUpgrades.artwork(cartBallId)}</div><div class="cart-preview-copy"><strong>${balls[cartBallId].name}</strong><span>${balls[cartBallId].type}</span></div><button type="button" class="cart-remove" data-remove-ball aria-label="Remove ${balls[cartBallId].name} from cart">Remove</button>`
+    : '<span class="cart-preview-empty">No ball selected</span>';
+  const suggestion = document.getElementById('pair-suggestion');
+  const nextClub = !claimSelectedId && cartBallId && !allClaimed() && progress.xp >= needed + tiers[currentTierIndex()].threshold
+    ? (tiers[currentTierIndex()].choices.includes(selectedId) ? selectedId : tiers[currentTierIndex()].choices[0]) : null;
+  const nextBall = !cartBallId && claimSelectedId && !allBallsClaimed() && progress.xp >= needed + ballTiers[currentBallTierIndex()].threshold
+    ? (ballTiers[currentBallTierIndex()].choices.includes(selectedBallId) ? selectedBallId : ballTiers[currentBallTierIndex()].choices[0]) : null;
+  suggestion.hidden = !nextClub && !nextBall;
+  suggestion.innerHTML = nextClub
+    ? `<div><span>COMPLETE THE PAIR</span><strong>Add ${clubs[nextClub].name}?</strong><small>${tiers[currentTierIndex()].threshold.toLocaleString()} XP · Club</small></div><button type="button" data-suggest-club="${nextClub}">Add club +</button>`
+    : nextBall
+      ? `<div><span>COMPLETE THE PAIR</span><strong>Add ${balls[nextBall].name}?</strong><small>${ballTiers[currentBallTierIndex()].threshold.toLocaleString()} XP · Ball</small></div><button type="button" data-suggest-ball="${nextBall}">Add ball +</button>` : '';
   document.getElementById('claim-cost').textContent = clubCost ? `${clubCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-ball-cost').textContent = ballCost ? `${ballCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-balance').textContent = `${progress.xp.toLocaleString()} XP`;
   document.getElementById('claim-needed').textContent = needed ? `${needed.toLocaleString()} XP` : '—';
   document.getElementById('claim-after').textContent = needed > progress.xp ? `${(needed - progress.xp).toLocaleString()} XP SHORT` : `${(progress.xp - needed).toLocaleString()} XP`;
   document.getElementById('claim-confirm-price').textContent = needed ? `${needed.toLocaleString()} XP` : '';
+  document.getElementById('claim-confirm-price').hidden = !needed;
   document.getElementById('claim-confirm-text').textContent = itemCount === 2 ? 'Purchase both' : claimSelectedId ? 'Purchase club' : cartBallId ? 'Purchase ball' : 'Choose gear';
   document.getElementById('claim-confirm').disabled = !itemCount || progress.xp < needed;
   document.querySelectorAll('[data-cart-club]').forEach(button => {
@@ -327,7 +372,17 @@ function renderCart() {
   });
 }
 
-document.getElementById('claim-button').addEventListener('click', () => openClaimCart(selectedId));
+document.getElementById('claim-button').addEventListener('click', () => openClaimCart());
+document.getElementById('topbar-cart').addEventListener('click', () => openClaimCart());
+document.getElementById('cart-club-preview').addEventListener('click', (event) => { if (event.target.closest('[data-remove-club]')) updateCartChoice(null); });
+document.getElementById('cart-ball-preview').addEventListener('click', (event) => { if (event.target.closest('[data-remove-ball]')) updateCartBallChoice(null); });
+document.getElementById('pair-suggestion').addEventListener('click', (event) => {
+  const club = event.target.closest('[data-suggest-club]');
+  const ball = event.target.closest('[data-suggest-ball]');
+  if (club) updateCartChoice(club.dataset.suggestClub);
+  if (ball) updateCartBallChoice(ball.dataset.suggestBall);
+  if (club || ball) document.getElementById('claim-confirm').focus();
+});
 
 document.getElementById('claim-confirm').addEventListener('click', () => {
   progress = loadProgress();
@@ -404,8 +459,6 @@ function hideModal(id) {
   if (id === 'claim-modal') {
     clearTimeout(claimRevealTimer);
     claimRevealTimer = null;
-    claimSelectedId = null;
-    cartBallId = null;
   }
   if (id === 'practice-modal') {
     practiceGeneration += 1;
@@ -536,4 +589,5 @@ function takeShot() {
   };
 }
 
+restoreCart();
 render();

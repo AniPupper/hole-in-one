@@ -10,8 +10,6 @@
   p { font-weight: 400; }
   label { display: block; margin: 24px 0 8px; }
   input { box-sizing: border-box; width: 100%; padding: 12px; border: 2px solid #76967c; border-radius: 10px; font: inherit; }
-  .render-choice { display: flex; align-items: center; gap: 10px; margin: 16px 0 0; font-weight: 700; }
-  .render-choice input { width: 22px; height: 22px; accent-color: #b45631; }
   button { width: 100%; margin-top: 16px; padding: 14px; border: 0; border-radius: 12px; background: #b45631; color: white; font: 800 18px system-ui, sans-serif; cursor: pointer; }
   small { display: block; margin-top: 18px; font-size: 13px; font-weight: 400; }
 </style>
@@ -21,7 +19,6 @@
   <form id="preview-form">
     <label for="level">Course number (1–501, including Encore)</label>
     <input id="level" type="number" min="1" max="501" value="1" required>
-    <label class="render-choice" for="render-3d"><input id="render-3d" type="checkbox" checked> Try the new 3D course</label>
     <button type="submit">Open test course ↗</button>
   </form>
   <button id="reset-tutorial" type="button">Reset tutorial and open game ↗</button>
@@ -33,11 +30,11 @@
     const level = Number(document.getElementById('level').value);
     if (!Number.isInteger(level) || level < 1 || level > 501) return;
     localStorage.setItem('hole-in-one-course-v1', JSON.stringify({ level, completed: false }));
-    location.href = document.getElementById('render-3d').checked ? '../game.html?render=3d' : '../game.html';
+    location.href = '../game.html';
   });
   document.getElementById('reset-tutorial').addEventListener('click', () => {
     localStorage.removeItem('hole-in-one-tutorial-seen-v1');
-    location.href = document.getElementById('render-3d').checked ? '../game.html?render=3d' : '../game.html';
+    location.href = '../game.html';
   });
 </script>
 </html>

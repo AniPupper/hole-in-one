@@ -25,7 +25,7 @@ This is a source and deterministic VM audit of the production `game.js` course. 
 
 `prototype-3d/gallery.js` is separate from production. Its pad outer half-axes, windmill tower and rotor span, bridge deck and rails, cup mouth, and backstop nominal dimensions closely match production. The designer aligned the gallery's pad lighting across the full contact disc, rail cap to 0.74, and bowl contour to radius 3.3, and documented its rotor phase as a sample to replace with each production feature's phase on integration. Gallery visuals were source-reviewed only.
 
-## Opt-in playable 3D trial — latest source/VM checks
+## Playable 3D course — latest source/VM checks
 
 - `tests/three_d_contract.cjs` passes headless WebGL2 mesh/API checks on holes 1/2/4/5/6/20/100/250. Static and dynamic vertex uploads, moving props, the hinged backstop, mole, upgraded gear, and animated bridge water all produce finite triangle geometry and camera matrices. The test ran after the richer river animation was ported.
 - `tests/three_d_physics_contract.cjs` passes local river contact/current/dry exit and bridge ramp/deck checks on holes 5/20/100/250. The cup support drops 0.12 at center and a near-cup test shot sinks in 1.04 s. The center-to-±1.7 fairway height difference across holes 4/5/100/250 is at most 0.041 after the cross-slope fix.

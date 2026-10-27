@@ -1,4 +1,4 @@
-/* Opt-in playable WebGL2 course renderer. The production canvas and physics own all input/state.
+/* Main playable WebGL2 course renderer. The transparent canvas and physics own all input/state.
    This module adapts the isolated design-lab geometry; it has no game globals.
    API: Game3D.create(canvas) -> { render(state), resize(), destroy() }.
    state: {layout,camera,ball,shot,progress,featureTime,stage,movingFeature,phase}. */
@@ -580,9 +580,17 @@
     for(const x of [-.30,-.04,.22])polygon([V(x-.12,.071,-.11),V(x+.14,.071,0),V(x-.12,.071,.11)],'#f8efc7',.2);
     for(let i=0;i<5;i++){const a=i*2*Math.PI/5;ellipsoid(.02,1.1+Math.cos(a)*1.1,Math.sin(a)*.82,.045,.045,.045,'#fff0bd',.87,7,9);}
   }
-  function modelCannon(){
+  function modelCannonBase(){
     shadow(0,0,.95,.7);ellipseDisc(0,.008,0,.86,.65,.07,'#6e533f','#ba8258');
     box(0,.28,0,1.28,.15,.64,['#be8b5f','#544638','#8f6748','#76553f','#99714d','#9c714c'],.15);
+    for(const x of [-.40,.40])for(const z of [-.45,.45]){
+      cylinder(V(x,.29,z),V(x,.29,z+(z>0?.08:-.08)),.27,.27,'#8b5a41',.24,18);
+      const wheelZ=z+(z>0?.09:-.09);
+      for(let i=0;i<8;i++){const a=i*Math.PI/4;tube([V(x,.29,wheelZ),V(x+Math.cos(a)*.23,.29+Math.sin(a)*.23,wheelZ)],.015,'#e9c090',.26,6);}
+      ellipsoid(x,.29,wheelZ,.055,.055,.018,'#f2d5a3',.48,8,12);
+    }
+  }
+  function modelCannonBarrel(){
     const rear=V(-.47,.56,0),front=V(.59,.73,0),axis=unit(sub(front,rear)),side=unit(cross(axis,[0,1,0])),up=unit(cross(side,axis));
     const ring=(center,a,r)=>add(center,add(scale(side,Math.cos(a)*r),scale(up,Math.sin(a)*r)));
     for(let i=0;i<24;i++){const a=i*2*Math.PI/24,b=(i+1)*2*Math.PI/24;
@@ -593,12 +601,6 @@
     }
     box(-.77,.32,0,.38,.055,.28,['#e7bf89','#604537','#b18660','#8a6244','#a67851','#a67851'],.16);
     for(const center of [rear,front]){const points=[];for(let i=0;i<32;i++){const a=i*2*Math.PI/32;points.push(ring(center,a,center===front?.305:.263));}tube(points,.024,'#f5dfa9',.62,7,true);}
-    for(const x of [-.40,.40])for(const z of [-.45,.45]){
-      cylinder(V(x,.29,z),V(x,.29,z+(z>0?.08:-.08)),.27,.27,'#8b5a41',.24,18);
-      const wheelZ=z+(z>0?.09:-.09);
-      for(let i=0;i<8;i++){const a=i*Math.PI/4;tube([V(x,.29,wheelZ),V(x+Math.cos(a)*.23,.29+Math.sin(a)*.23,wheelZ)],.015,'#e9c090',.26,6);}
-      ellipsoid(x,.29,wheelZ,.055,.055,.018,'#f2d5a3',.48,8,12);
-    }
   }
   function modelCannonDemoBall(time){
     const cycle=time%3.6;
@@ -744,7 +746,7 @@
       else if(f.kind==='bumper'&&!f.move)withPose(f.x,ground,f.z,0,modelBumper);
       else if(f.kind==='loop')withPose(f.x,ground,f.z,yaw,modelLoop);
       else if(f.kind==='windmill')withPose(f.x,ground,f.z,0,modelWindmill);
-      else if(f.kind==='cannon')withPose(f.x,ground,f.z,yaw,modelCannon);
+      else if(f.kind==='cannon')withPose(f.x,ground,f.z,yaw,modelCannonBase);
     }
     if(layout.river)bridgePose(layout,()=>modelWaterBridge(0,false));
     else for(const f of layout.features)if(f.kind==='bridge'){
@@ -841,11 +843,11 @@
     if(!c?.feature||!Number.isFinite(shot.elapsed))return;
     const feature=c.feature,ground=groundAt(state.layout,feature.x,feature.z);
     const age=shot.elapsed-c.startedAt;
-    withPose(feature.x,ground,feature.z,courseYaw(state.layout,feature.t),()=>{
+    withPose(feature.x,ground,feature.z,Math.atan2(c.currentDir.z,c.currentDir.x),()=>{
       if(c.stage==='loading'||c.stage==='chambered'){
         const pulse=.5+.5*Math.sin(age*24);
-        // Feed lights lead visibly from the rear cradle into the bore, then
-        // illuminate the seated ball without moving the cannon model.
+        // Feed lights lead from the rear cradle into the bore while the
+        // barrel turns, then illuminate the seated ball.
         for(let i=0;i<4;i++){
           const x=-.76+i*.32,y=.48+(x+.76)*.16;
           const active=age>.04+i*.075;
@@ -881,6 +883,12 @@
       const ground=groundAt(layout,f.x,f.z);
       if(f.kind==='bumper'&&raw.move)withPose(f.x,ground,f.z,0,modelBumper);
       else if(f.kind==='windmill')withPose(f.x,ground,f.z,0,()=>modelWindmillRotor(featureTime+(f.phase-.4)/1.5));
+      else if(f.kind==='cannon'){
+        const active=shot?.cannon?.id===f.id?shot.cannon.currentDir:null;
+        const tangent=tangentAt(layout,f.t),restAngle=Math.atan2(tangent.z,tangent.x)-.42;
+        const angle=active?Math.atan2(active.z,active.x):restAngle;
+        withPose(f.x,ground,f.z,angle,modelCannonBarrel);
+      }
     }
     if(layout.river)bridgePose(layout,()=>modelWaterSurface(featureTime));
     if(shot?.mole?.active){

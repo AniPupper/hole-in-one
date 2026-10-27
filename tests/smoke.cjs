@@ -101,6 +101,13 @@ function checkShop() {
   const catalog = checkCatalog(shop);
   assert.equal(shop.run('progress.xp'), 0, 'new players should start with no XP');
   shop.run('progress.xp = 2000; saveProgress()');
+  shop.run("openClaimCart('meteor')");
+  assert.equal(shop.run('cartBallId'), null, 'a club click should not add a ball silently');
+  assert.ok(shop.run("document.getElementById('pair-suggestion').innerHTML.includes('Add Sunburst')"), 'affordable pairing should be suggested');
+  assert.equal(shop.run("document.getElementById('topbar-cart-count').textContent"), 1);
+  shop.run("hideModal('claim-modal')");
+  assert.equal(shop.run('claimSelectedId'), 'meteor', 'closing the drawer should keep the cart');
+  assert.equal(JSON.parse(store.get('hole-in-one-cart-v1')).club, 'meteor');
   shop.run("openClaimCart('meteor', 'sunburst')");
   assert.equal(shop.run("document.getElementById('claim-needed').textContent"), '1,900 XP');
   assert.equal(shop.run("document.getElementById('claim-confirm-text').textContent"), 'Purchase both');
@@ -109,6 +116,7 @@ function checkShop() {
   assert.equal(saved.xp, 100, 'combined purchase must spend both item prices');
   assert.equal(saved.equipped, 'meteor');
   assert.equal(saved.equippedBall, 'sunburst');
+  assert.equal(store.has('hole-in-one-cart-v1'), false, 'purchase should clear the saved cart');
   assert.deepEqual([...saved.claimed], [0]);
   assert.deepEqual([...saved.claimedBallTiers], [0]);
 
@@ -297,6 +305,26 @@ function checkCupRegressions() {
   assert.ok(backstop.flapDelay>=.22, 'rear flap did not stay active long enough to open');
   assert.equal(backstop.phase,'complete','rear overflow stalled behind backstop');
   return { turn, backstop };
+}
+
+function checkDefaultRenderer() {
+  const game = host(new Map());
+  let created = 0, resized = 0;
+  game.context.window.Game3D = { create(canvas) {
+    assert.equal(canvas.id, 'scene-3d');
+    created++;
+    return { resize() { resized++; }, render() {}, destroy() {} };
+  } };
+  game.load('game.js');
+  assert.equal(created, 1, 'normal game route must initialize 3D');
+  assert.equal(resized, 1, '3D canvas must size on startup');
+  assert.equal(game.run('renderer3D !== null'), true);
+
+  const classic = host(new Map());
+  classic.context.window.Game3D = { create() { return null; } };
+  classic.load('game.js');
+  assert.equal(classic.run('renderer3D === null'), true,
+    'classic canvas should remain available without WebGL2');
 }
 
 function checkCourse(catalog) {
@@ -490,12 +518,14 @@ function checkCourse(catalog) {
 
 const catalog = checkShop();
 checkLocalReset();
+checkDefaultRenderer();
 const cupRegressions = checkCupRegressions();
 const result = checkCourse(catalog);
 checkStaleShopSave();
 console.log(`PASS shop: ${catalog.clubTiers.length} club tiers, ${catalog.ballTiers.length} ball tiers, combined cart through final tier, XP, reload`);
 console.log('PASS shop stale tabs: newer XP, shot count, club/ball gear and unlocks survive single-item purchases');
 console.log('PASS local reset: XP, gear, course and tutorial flag return to starter state');
+console.log('PASS renderer: normal game initializes 3D, unavailable WebGL falls back to classic canvas');
 console.log(`PASS cup/backstop: speed-preserving turn, front bank, timed rear flap and cup in ${cupRegressions.backstop.seconds.toFixed(1)}s`);
 console.log(`PASS course: ${result.count} shot traces${result.fullCount ? ` including all ${result.fullCount} blueprints` : ''}, ${result.different} unique layouts, ${result.routeShapes} route shapes across ${result.routeFamilies} turn patterns, minimum prop gap ${result.minSpacing.toFixed(2)}`);
 console.log(`PASS reward/persistence: longest ${result.longest.toFixed(1)}s, maximum frame step ${result.largestStep.toFixed(2)}, final cup radius ${result.furthestFinish.toFixed(2)}`);

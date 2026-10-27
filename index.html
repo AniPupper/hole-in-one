@@ -9,11 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?shop=cart-1" />
     <link rel="stylesheet" href="./tutorial.css" />
     <script src="./gear-progression.js" defer></script>
     <script src="./ball-upgrades.js" defer></script>
-    <script src="./script.js?economy=2" defer></script>
+    <script src="./script.js?shop=cart-1" defer></script>
     <script src="./shop-tutorial.js" defer></script>
   </head>
   <body>
@@ -55,7 +55,7 @@
       <main class="main-content" id="shop">
         <header class="topbar">
           <div class="breadcrumb"><span>THE CLUBHOUSE</span><span class="breadcrumb-slash">/</span><strong>PRO SHOP</strong></div>
-          <a class="topbar-play" href="./game.html">Play a hole <span aria-hidden="true">↗</span></a>
+          <div class="topbar-actions"><button class="topbar-cart" id="topbar-cart" type="button" aria-label="Open cart, 0 items"><span aria-hidden="true">▣</span> Cart <strong id="topbar-cart-count">0</strong></button><a class="topbar-play" href="./game.html">Play a hole <span aria-hidden="true">↗</span></a></div>
         </header>
 
         <div class="content-wrap">
@@ -94,10 +94,10 @@
             <div class="ball-grid" id="ball-grid"></div>
           </section>
 
-          <section class="selection-bar" aria-live="polite">
-            <div class="selection-bar-icon">✦</div>
-            <div class="selection-info"><span class="selection-caption">YOUR PICK</span><strong id="selected-name">The Comet</strong><strong class="selection-price" id="selection-price">1,000 XP</strong></div>
-            <button class="claim-button" id="claim-button" type="button"><span>Add to cart</span><span aria-hidden="true">↗</span></button>
+          <section class="selection-bar" aria-live="polite" aria-label="Cart summary">
+            <div class="selection-bar-icon" aria-hidden="true">▣</div>
+            <div class="selection-info"><span class="selection-caption">YOUR CART</span><strong id="selected-name">Your cart is empty</strong><strong class="selection-price" id="selection-price">0 XP</strong></div>
+            <button class="claim-button" id="claim-button" type="button"><span>View cart</span><span aria-hidden="true">↗</span></button>
           </section>
         </div>
       </main>
@@ -108,10 +108,23 @@
 
     <div class="modal-backdrop" id="claim-modal" hidden>
       <section class="claim-dialog" role="dialog" aria-modal="true" aria-labelledby="claim-title">
+        <div class="cart-golf-cart" aria-hidden="true">
+          <svg viewBox="0 0 144 92" focusable="false">
+            <ellipse cx="75" cy="82" rx="59" ry="5" fill="#dbe5d2"/>
+            <path d="M36 33h66l12 9-5 3H29l7-12Z" fill="#ffcf57" stroke="#28543b" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M45 43v23m52-23v23" fill="none" stroke="#28543b" stroke-width="3" stroke-linecap="round"/>
+            <path d="M20 57h88l13 10-5 8H31c-7 0-11-3-11-9v-9Z" fill="#bf5a2c" stroke="#28543b" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M47 51h29c5 0 7 3 7 8H43c0-5 1-8 4-8Z" fill="#f5eadc" stroke="#28543b" stroke-width="2"/>
+            <path d="M85 54l9 12m-5-14h10" fill="none" stroke="#28543b" stroke-width="3" stroke-linecap="round"/>
+            <path d="M111 51v16m0-16 13 3-13 4" fill="#ffcf57" stroke="#28543b" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="42" cy="76" r="9" fill="#214b36"/><circle cx="100" cy="76" r="9" fill="#214b36"/>
+            <circle cx="42" cy="76" r="3" fill="#f5eadc"/><circle cx="100" cy="76" r="3" fill="#f5eadc"/>
+          </svg>
+        </div>
         <button class="modal-close" id="claim-close" type="button" aria-label="Close cart">×</button>
         <div class="claim-step" id="claim-step">YOUR CART</div>
-        <h2 id="claim-title">Ready to roll?</h2>
-        <p class="claim-intro" id="claim-intro">One XP milestone unlocks both. Your total stays.</p>
+        <h2 id="claim-title">Your cart.</h2>
+        <p class="claim-intro" id="claim-intro">Add a club, a ball, or both. Review your XP before buying.</p>
         <div class="claim-showcase" id="claim-showcase">
           <div class="claim-rays" aria-hidden="true"></div>
           <div class="claim-glow" aria-hidden="true"></div>
@@ -119,9 +132,10 @@
           <span class="claim-star star-one" aria-hidden="true">✦</span><span class="claim-star star-two" aria-hidden="true">✳</span>
         </div>
         <div class="cart-items">
-          <div class="cart-item"><div class="cart-item-heading"><span>01 / CLUB</span><strong id="claim-cost">1,000 XP</strong></div><div class="claim-cart-choices" id="claim-cart-choices" aria-label="Choose a club for your cart"></div></div>
-          <div class="cart-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">900 XP</strong></div><div class="claim-ball-choices" id="claim-ball-choices" aria-label="Choose a ball for your cart"></div></div>
+          <div class="cart-item"><div class="cart-item-heading"><span>01 / CLUB</span><strong id="claim-cost">—</strong></div><div class="cart-preview" id="cart-club-preview"></div><div class="claim-cart-choices" id="claim-cart-choices" aria-label="Choose a club for your cart"></div></div>
+          <div class="cart-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">—</strong></div><div class="cart-preview" id="cart-ball-preview"></div><div class="claim-ball-choices" id="claim-ball-choices" aria-label="Choose a ball for your cart"></div></div>
         </div>
+        <div class="pair-suggestion" id="pair-suggestion" hidden></div>
         <div class="claim-receipt" aria-label="Unlock summary">
           <span>XP BALANCE <strong id="claim-balance">0 XP</strong></span>
           <span>CART TOTAL <strong id="claim-needed">1,000 XP</strong></span>

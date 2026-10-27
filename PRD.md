@@ -7,9 +7,13 @@
 
 ---
 
+## Product Goal
+
+After a five-minute session, a player should feel satisfied by every hole-in-one and want to keep playing. The immediate reason to continue is the next course's distinct layout: different hills, turns, and placements of course elements to discover. The guaranteed result should make a quick break feel rewarding, while the player's aim and equipped gear make each route feel distinct.
+
 ## 1. Primary Users
 
-**Casual players looking for a short break.** The main audience is people who want a short, low-effort activity they can start immediately in a web browser. Examples include students between classes and office workers on a break. They do not want to learn complex controls or risk failing. They play in sessions of one to ten minutes and may return several times a day.
+**Casual players looking for a short break.** This is the primary audience for the first public version: people who want a short, low-effort activity they can start immediately in a web browser. Examples include students between classes and office workers on a break. They do not want to learn complex controls or risk failing. They play in sessions of one to ten minutes and may return several times a day.
 
 **Players motivated by collecting and progression.** A second group is drawn to unlocking, collecting, and equipping items. These players value visible progress: a growing XP balance, new gear, and courses that become more elaborate. They are the main audience for the Pro Shop.
 
@@ -21,7 +25,7 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 
 1. **Casual games often punish failure.** Many quick browser games depend on skill and repeated failure, which frustrates players who want a relaxing, rewarding break. Hole in One guarantees a hole-in-one on every first stroke. Player input changes how the ball reaches the cup, not whether it does.
 
-2. **Guaranteed success can feel empty.** If every shot succeeds, the outcome must still feel earned and interesting. The game addresses this through spectacle: visible assists such as wind gusts, launch pads, cannons, loops, rivers, and moles. These become longer and more surprising chain reactions as the player progresses.
+2. **Guaranteed success can feel empty.** If every shot succeeds, the route must still feel shaped by the player's decision. Aim direction should strongly change how the ball travels and which visible assists it encounters, while every first stroke still reaches the cup. Spectacle comes from wind gusts, launch pads, cannons, loops, rivers, and moles. The next course should promise a visibly different route through its hills, turns, and element positions.
 
 3. **Progress in short sessions is hard to feel.** Players need a clear sense of advancement even when they play for only a minute. Each hole awards XP, and the Pro Shop turns XP into visible, equippable upgrades.
 
@@ -33,12 +37,15 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 
 **Gameplay**
 - Aim and shoot by pressing, pulling back, and releasing. Pull distance sets power from 0 to 100 percent.
-- Every first stroke ends in the cup, helped by visible course features and environmental rescues.
-- A fixed catalog of 250 course plans with bends, hills, and obstacles. These include launch pads, windmills, loops, cannons, bumpers, bridges, rivers, and moles. After hole 250, encore holes reuse the catalog with mirrored turns.
+- Aim should strongly affect the shot's visible route through the course, including its interactions with obstacles, without removing the guaranteed first-stroke hole-in-one.
+- Every first stroke ends in the cup, helped by course features and environmental rescues. Keep the current rescue sequence and brief event pop-ups that explain what happened.
+- A fixed catalog of 250 course plans with bends, hills, and obstacles. Consecutive holes should feel distinct through different hill shapes, turns, and positions of their elements. Elements include launch pads, windmills, loops, cannons, bumpers, bridges, rivers, and moles. After hole 250, encore holes reuse the catalog with mirrored turns; mirroring is sufficient variety for this stage of the product.
 - Difficulty and spectacle increase over time. The first seven holes introduce elements gently, and later holes build longer chain reactions.
-- A celebration with confetti and an XP award after each hole-in-one.
-- Equipped club and ball affect launch speed, height, bounce, spin, and roll, and the ball shows its equipped skin on the course.
-- Two renderers: the default classic view and an opt-in WebGL2 3D view.
+- A typical swing-to-cup sequence should take about 10–20 seconds, leaving time for a satisfying route within a short play session.
+- A celebration with confetti and an XP award after each hole-in-one. The course supplies the main reward, with a small bonus for a distinctive route. The criteria for a distinctive route still need definition. The current power-based bonus should be replaced when route scoring is designed.
+- When a ball enters a cannon, the barrel briefly turns toward a safe point farther along the course before firing. Its visible aim and launch velocity match, and the ball stays within the playable lane during the launch.
+- Equipped club and ball visibly affect the shot, including launch speed, height, bounce, spin, and roll. Classic White has a slower full-power launch; buying a ball gives a clear speed improvement, including for first-tier balls with a low roll stat. A player who keeps Classic White on later courses must still finish every hole, but their shot should feel noticeably slower than with upgraded gear. The first club upgrade should feel subtly but noticeably faster than the Rookie; later upgrades should also improve how quickly the ball moves through obstacles. The ball shows its equipped skin on the course. All gear must preserve the guaranteed first-stroke hole-in-one.
+- A WebGL2 3D course by default, with the classic canvas view as an automatic fallback when WebGL is unavailable.
 
 **Pro Shop**
 - Displays the XP balance as a large hero number, alongside the currently equipped gear.
@@ -46,16 +53,16 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 - Uses one cart that holds up to one club and one ball, with a combined total and the remaining balance shown.
 - Purchases equip the gear immediately and lead into an animated reveal.
 - Allows only one purchase per tier. Prices rise steadily across tiers.
+- A new player should usually be able to afford either a club or a ball after two or three completed holes. Validate this against actual course rewards before changing the economy.
 
 **Onboarding**
 - A single-screen tutorial on first visit explains aiming, the guaranteed hole-in-one, and the shop. Players can reopen it from the course.
 
 **Planned capabilities (in development)**
-- A full Pro Shop redesign with a persistent cart drawer, rarity tags, comparison against equipped gear, a receipt, and a locker of owned items.
-- "View the Course": a free-look camera before the first stroke, and a mouse- or touch-controlled orbit camera around the ball after the shot.
+- Further Pro Shop polish, including a receipt and a locker of owned items.
+- An optional **View course** button opens a free camera so the player can explore before the first stroke. During the shot, the camera follows the ball automatically, while the player can change the viewing angle. Once changed, the angle stays at the player's choice through the shot. The camera input controls still need definition.
 - A rolling animation for the ball.
 - Retuned shot power, so full power feels proportionally stronger.
-- Cannons that turn to aim toward the hole before firing.
 - Mole pop-up animations, and a fix for moles appearing outside the course.
 - A new tunnel element, with courses becoming progressively hillier and more complex.
 
@@ -69,6 +76,7 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 **From the system**
 - Saved progress in browser storage (`hole-in-one-progress-v1`): XP balance, hole count, equipped and owned club and ball IDs, and claimed tiers.
 - Saved course state (`hole-in-one-course-v1`): current level and completion state.
+- Saved Pro Shop cart (`hole-in-one-cart-v1`): selected club and ball until purchase or explicit removal.
 - Tutorial state (`hole-in-one-tutorial-seen-v1`).
 - The course catalog (`course-blueprints.js`), generated ahead of time by a build script. It is not generated randomly at runtime.
 - Gear definitions: hand-designed data for the first six tiers, plus deterministic generated tiers beyond them.
@@ -82,31 +90,31 @@ The product collects no personal information. No account, email address, or paym
 2. The player selects **Play a hole** (or explores the shop first).
 3. On the course, the player presses, pulls back to aim and set power, and releases.
 4. The ball travels through visible assists and drops into the cup.
-5. A celebration shows the XP earned, and the player continues to the next hole.
+5. A celebration shows the XP earned. **Next course** is the main action. When the player can afford a new item, **Next course** and **Visit the shop** have equal prominence, without naming specific gear on the celebration.
 
 **Flow B: Purchasing gear**
-1. The player opens the Pro Shop from the course.
-2. The player reviews the current tier's three clubs and three balls, with stats and prices.
-3. The player selects **Add to cart** on an item. If the balance covers both a club and a ball, both may be added together.
-4. The cart shows the item prices, the total, and the remaining XP.
+1. The player opens the site at the Pro Shop, or returns to it from the course.
+2. The player reviews the current tier's three clubs and three balls. Cards prioritize artwork, then rarity, comparison with equipped gear, and performance stats.
+3. The player selects **Add to cart** on an item. If the balance covers both a club and a ball, the cart suggests a matching item that the player may add.
+4. A cart modal shows the item prices, the total, and the remaining XP. Cart selections remain when the modal closes or the player leaves and returns to the shop.
 5. The player selects **Purchase**. The gear is equipped and a reveal animation plays.
 6. The reveal offers **Play a hole**, which returns the player to the course with the new gear.
 
 **Flow C: Returning player**
 1. The player opens the site, and saved XP, gear, and course level load from browser storage.
-2. The player either resumes at the saved hole or visits the shop to spend accumulated XP.
+2. The player resumes the next saved hole or visits the shop to spend accumulated XP. Completed courses are not available for replay; progression moves forward only.
 
 **Flow D: Viewing the course (planned)**
-1. Before the first stroke, the player selects **View course**. Shooting is disabled.
-2. The player drags to pan or orbit and scrolls or pinches to zoom. An optional flyover runs from tee to cup.
-3. The player selects **Back to tee** and takes the shot.
-4. During the shot, the player can drag to orbit the camera around the ball, and can reset the view at any time.
+1. Before the first stroke, the player may select **View course** to explore with a free camera.
+2. The player returns to the tee and takes the shot.
+3. The camera follows the moving ball automatically. The player can change the viewing angle, and that angle persists until the shot ends. The input control remains to be defined.
 
 ## 6. Constraints
 
 - **The guaranteed outcome is fixed.** The first stroke on every hole must reach the cup. No feature, tuning change, or new element may break this.
 - **No real money.** All currency is XP earned in the game. The product must not offer real purchases or collect payment information.
 - **Visible causes only.** Course rescues and assists must be visible on screen. Walls must follow the fairway with matching collision, and there must be no invisible boundaries or unexplained curves.
+- **Forward-only course progression.** The player advances to the next course after a hole-in-one and cannot select or replay earlier courses.
 - **Saves must stay compatible.** Changes must keep existing saved progress working, including storage keys, data shape, gear IDs, and prices.
 - **No visible content cap.** Players must never see the total number of tiers or holes, even though the catalog has internal limits (1,000 gear tiers per type, 250 base holes).
 - **Purchases stay quick.** Buying a single item must take no more than two clicks from its card.
@@ -118,6 +126,7 @@ The product collects no personal information. No account, email address, or paym
 **Course screen**
 - A full-screen course with a minimal HUD: level, equipped club, wind indicator, and power percentage with a fill bar.
 - An aim preview while dragging, and short callouts for events such as "CANNON FIRED" and "RIGHT IN THE CUP!"
+- The hole-in-one celebration leads primarily to the next course. When the XP balance can buy a current gear item, the next-course and Pro Shop actions have equal visual weight; the celebration need not name the available item.
 - Clear access to the Pro Shop and to **How to play**.
 - A broad, colorful palette, with navigation and XP still easy to find.
 
@@ -125,8 +134,11 @@ The product collects no personal information. No account, email address, or paym
 - Brand colors: green as the grounding clubhouse color, burnt orange for actions and selected gear, and yellow (`--xp-yellow`) for XP figures, price badges, and progress.
 - The XP balance is the most prominent number on the screen.
 - Bold titles, large key numbers, and very little explanatory copy.
-- Item cards show name, stats, price, and state (available, in cart, owned, or unaffordable).
+- Item cards emphasize artwork first, followed by rarity, comparison with equipped gear, and performance stats. They also show name, price, and state (available, in cart, owned, or unaffordable). Unaffordable items remain visible with disabled purchase controls.
 - The cart always shows each item's price, the total, and the balance after purchase.
+- Use **cart** consistently for items being considered; the cart header includes a small decorative golf cart illustration. **Bag** remains the term for gear already owned or equipped.
+- The cart suggests a matching club or ball when affordable, but adding the suggested item requires the player's confirmation.
+- Opening the cart uses a brief upward entrance animation, with an immediate appearance when reduced motion is preferred.
 - The purchase reveal uses confetti and motion, and has a reduced-motion alternative.
 
 **General**
@@ -139,7 +151,7 @@ The product collects no personal information. No account, email address, or paym
 - **Static site with no build step.** The site is plain HTML, CSS, and JavaScript files served as-is. There are no package dependencies or frameworks.
 - **Hosting.** The site is deployed on Vercel at hole-in-one-roan.vercel.app. Source control is GitHub (AniPupper/hole-in-one), managed through GitHub Desktop.
 - **Storage.** The site uses browser `localStorage` only. There is no backend, database, or server-side logic.
-- **Rendering.** The classic renderer uses the 2D canvas. The 3D renderer requires WebGL2 and is currently opt-in at `game.html?render=3d`. The classic view remains the default until the 3D view is verified across devices.
+- **Rendering.** `game.html` starts the WebGL2 3D renderer by default. The classic 2D canvas takes over automatically if WebGL2 cannot initialize or rendering fails.
 - **Physics.** The simulation runs at a fixed 120 Hz step. The ball's top speed must stay below one ball radius of travel per step, or the step rate must be raised, so that collisions with thin objects are always detected.
 - **Deterministic content.** Courses come from a checked-in catalog generated by `tools/build_course_blueprints.py`, and gear tiers come from deterministic generation in `gear-progression.js`. Regenerating content is a deliberate source change.
 - **Testing.** An automated smoke suite (`tests/run_smoke.py`) checks shop progression, persistence, course shot traces, layout uniqueness, and physics timing. 3D contract tests check mesh and collision consistency. Changes must pass the suite before release.
@@ -150,7 +162,20 @@ The product collects no personal information. No account, email address, or paym
 ## Success Criteria
 
 - 100 percent of first strokes reach the cup across the full course catalog in automated tests.
+- Consecutive courses show visibly different hill and turn shapes and different element placements; review the first-session sequence and catalog samples for repetition.
+- Across representative aim directions on each course, the ball takes meaningfully different visible routes while still reaching the cup. Define a route-diversity measure before using this as a release gate.
+- The median swing-to-cup time across representative holes is 10–20 seconds; unusually long courses are reviewed for pacing.
 - A first-time visitor completes their first hole within 60 seconds of opening the site.
+- In a representative first-session progression check, the first gear purchase is affordable after two or three holes.
+- A distinctive-route XP bonus remains small relative to the course's base reward, so a player is not penalized for exploring different shots.
+- Players can identify a subtle but noticeable speed increase after the first club upgrade and visible behavior changes from later gear; define concrete before-and-after cases for acceptance testing.
+- On later courses, Classic White remains viable for a guaranteed hole-in-one but feels noticeably slower than upgraded balls under comparable shots.
 - A single-item purchase takes no more than two clicks, and a club plus ball together takes no more than three.
 - Existing saved progress loads without loss after every release.
 - The course and shop render without layout breakage in standard desktop browser windows and in narrow 375px-wide browser windows.
+
+## Near-Term Product Priorities
+
+1. Make gear upgrades noticeably affect play, particularly club speed and agility, while preserving the guaranteed hole-in-one.
+2. Review the new cannon turn and course-directed launch in play, and fix any off-course cases players find.
+3. Continue honing the Pro Shop experience.
