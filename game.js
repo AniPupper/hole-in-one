@@ -210,7 +210,7 @@ function movingFeature(feature,timeSeconds){
   return{...feature,x:feature.x-dz/n*offset,z:feature.z+dx/n*offset};
 }
 const camera = { eye: null, target: null, forward: null, right: null, up: null };
-const cameraOrbit = { yaw: 0, pitch: 0, pointer: null };
+const cameraOrbit = { yaw: 0, pitch: 0, zoom: 1, pointer: null };
 const previewCamera = { active: false, focusT: .5, across: 0, yaw: 0, pitch: .55, distance: 9, pointer: null };
 function normalize3(v) { const n = Math.hypot(v.x, v.y, v.z) || 1; return { x: v.x/n, y: v.y/n, z: v.z/n }; }
 function cross(a,b) { return { x:a.y*b.z-a.z*b.y, y:a.z*b.x-a.x*b.z, z:a.x*b.y-a.y*b.x }; }
@@ -257,7 +257,10 @@ function updateCamera(now) {
   const eye={x:mix(startEye.x,trackedEye.x,follow),y:mix(startEye.y,trackedEye.y,follow),z:mix(startEye.z,trackedEye.z,follow)};
   const target={x:mix(startTarget.x,trackedTarget.x,follow),y:mix(startTarget.y,trackedTarget.y,follow),z:mix(startTarget.z,trackedTarget.z,follow)};
   const rotate=p=>{const dx=p.x-ball.x,dz=p.z-ball.z,c=Math.cos(cameraOrbit.yaw),s=Math.sin(cameraOrbit.yaw);
-    return{x:ball.x+dx*c-dz*s,y:p.y+cameraOrbit.pitch*(p===eye?2.3:.65),z:ball.z+dx*s+dz*c};};
+    const zoom=p===eye?cameraOrbit.zoom:1;
+    return{x:ball.x+(dx*c-dz*s)*zoom,
+      y:ball.y+(p.y-ball.y)*zoom+cameraOrbit.pitch*(p===eye?2.7:.75),
+      z:ball.z+(dx*s+dz*c)*zoom};};
   placeCamera(rotate(eye),rotate(target));
 }
 function pathTangent(t){
@@ -1089,8 +1092,8 @@ function moveShotPointer(e){
   }
   if(cameraOrbit.pointer?.id===e.pointerId){
     const p=cameraOrbit.pointer;
-    cameraOrbit.yaw+=(e.clientX-p.x)*.006;
-    cameraOrbit.pitch=Math.max(-.55,Math.min(.7,cameraOrbit.pitch-(e.clientY-p.y)*.004));
+    cameraOrbit.yaw+=(e.clientX-p.x)*.008;
+    cameraOrbit.pitch=Math.max(-.72,Math.min(.88,cameraOrbit.pitch-(e.clientY-p.y)*.005));
     p.x=e.clientX;p.y=e.clientY;return;
   }
   if(!dragging||e.pointerId!==activePointerId)return;
@@ -1133,8 +1136,15 @@ $('preview-back').addEventListener('click',()=>{previewCamera.focusT=Math.max(0,
 $('preview-forward').addEventListener('click',()=>{previewCamera.focusT=Math.min(1,previewCamera.focusT+.18);});
 $('preview-zoom-out').addEventListener('click',()=>{previewCamera.distance=Math.min(22,previewCamera.distance*1.18);});
 $('preview-zoom-in').addEventListener('click',()=>{previewCamera.distance=Math.max(3,previewCamera.distance/1.18);});
-gameShell.addEventListener('wheel',e=>{if(!previewCamera.active)return;
-  e.preventDefault();previewCamera.distance=Math.max(3,Math.min(22,previewCamera.distance*Math.exp(e.deltaY*.001)));},{passive:false});
+gameShell.addEventListener('wheel',e=>{
+  if(previewCamera.active){
+    e.preventDefault();previewCamera.distance=Math.max(3,Math.min(22,previewCamera.distance*Math.exp(e.deltaY*.001)));
+    return;
+  }
+  if(phase==='running'&&shot){
+    e.preventDefault();cameraOrbit.zoom=Math.max(.72,Math.min(1.65,cameraOrbit.zoom*Math.exp(e.deltaY*.001)));
+  }
+},{passive:false});
 gameShell.addEventListener('contextmenu',e=>{if(previewCamera.active)e.preventDefault();});
 window.addEventListener('keydown',e=>{if(!previewCamera.active)return;
   if(e.key==='Escape'){setPreview(false);return;}
@@ -1314,8 +1324,12 @@ function cannonVisibleDirection(feature){
 function contactLoop(feature){
   if(shot.usedBoosts.has(feature.id))return;
   const loc=localCoordinates(feature,ball.x,ball.z),ground=layout.heightAt(feature.x,feature.z);
-  if(Math.abs(loc.along)>.24||Math.abs(loc.across)>.62||ball.y>ground+.56)return;
-  const dir=pathTangent(feature.t);
+  // The glowing hoop is a speed gate: the ball earns its boost anywhere
+  // inside its open center, so it does not need to graze the physical ring.
+  const height=ball.y-(ground+1.1);
+  const insideOpening=(loc.across/.62)**2+(height/.84)**2<=1;
+  if(Math.abs(loc.along)>.24||!insideOpening)return;
+  const dir=loc.dir;
   shot.velocity.x+=dir.x*1.8;shot.velocity.z+=dir.z*1.8;
   shot.velocity.y=Math.max(shot.velocity.y,1.6*shot.ballProfile.liftMultiplier);
   shot.usedBoosts.add(feature.id);contactEvent('loop',feature.x,feature.z,'THROUGH THE LOOP','✹');
@@ -1694,7 +1708,7 @@ function startShot(p,vector){
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
     windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),tunnelEntries:new Set(),tunnelAwards:new Set(),tunnelBonus:0,sinking:false,lastTrail:0,lastCue:''};
-  cameraOrbit.yaw=0;cameraOrbit.pitch=0;cameraOrbit.pointer=null;
+  cameraOrbit.yaw=0;cameraOrbit.pitch=0;cameraOrbit.zoom=1;cameraOrbit.pointer=null;
   phase='running';gameShell.classList.add('shot-running');$('shot-dock').classList.add('hidden');$('view-hint').hidden=false;
   showCallout(strength<24?'A GENTLE TAP':'LET IT FLY!',strength<24?'〰':'↗',800);setPower(0);
 }

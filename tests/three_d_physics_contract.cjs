@@ -263,6 +263,25 @@ assert.ok(freshness.late.speed<freshness.early.speed,'old gear did not lose laun
 assert.equal(freshness.refreshed.pace,1,'new gear should refresh launch pace');
 console.log(`Gear freshness OK: old loadout ${Math.round(freshness.late.pace*100)}% pace by hole 160; current loadout 100%`);
 
+const loopGate = vm.runInContext(`(() => {
+  setLayout(4);courseState={level:4,completed:false};
+  const loop=layout.features.find(feature=>feature.kind==='loop');
+  const dir=pathTangent(loop.t),ground=layout.heightAt(loop.x,loop.z);
+  function pass(across,height){
+    phase='ready';ball={...START};shot=null;updateCamera(1000);
+    startShot(60,{x:160,y:0});
+    ball={x:loop.x+dir.x*.03-dir.z*across,y:ground+height,z:loop.z+dir.z*.03+dir.x*across};
+    shot.velocity={x:dir.x*3,y:0,z:dir.z*3};
+    contactLoop(loop);
+    return{boosted:shot.usedBoosts.has(loop.id),speed:Math.hypot(shot.velocity.x,shot.velocity.z)};
+  }
+  return{center:pass(0,1.1),outside:pass(.74,1.1)};
+})()`, context);
+assert.equal(loopGate.center.boosted,true,'a clean pass through the loop opening missed its boost');
+assert.equal(loopGate.outside.boosted,false,'a ball outside the loop opening received a boost');
+assert.ok(loopGate.center.speed>loopGate.outside.speed,'loop gate did not increase speed');
+console.log('Loop gate OK: clear passage through the ring opening receives a speed boost');
+
 const playableTunnel = vm.runInContext(`(() => {
   for(const level of [4,6]){
     setLayout(level);courseState={level,completed:false};
@@ -297,6 +316,8 @@ const cameraAndMole = vm.runInContext(`(() => {
   const changed={...camera.eye};
   updateCamera(1000);
   const kept={...camera.eye};
+  cameraOrbit.zoom=1.35;updateCamera(1000);
+  const zoomed={...camera.eye};
   const d=pathTangent(.4);
   shot.elapsed=5;shot.velocity={x:d.x*3,y:0,z:d.z*3};
   shot.lastGust=5;shot.gustAt=null;shot.lastMole=-10;shot.mole=null;
@@ -309,12 +330,14 @@ const cameraAndMole = vm.runInContext(`(() => {
   for(let i=0;i<55&&phase==='running';i++)stepPhysics(1/120);
   const riskyRescue=shot?.lastMole>1.5;
   return{earlyMole,lateMole,shift:Math.hypot(original.x-changed.x,original.y-changed.y,original.z-changed.z),
-    drift:Math.hypot(changed.x-kept.x,changed.y-kept.y,changed.z-kept.z),riskyRescue};
+    drift:Math.hypot(changed.x-kept.x,changed.y-kept.y,changed.z-kept.z),
+    zoomShift:Math.hypot(zoomed.x-kept.x,zoomed.y-kept.y,zoomed.z-kept.z),riskyRescue};
 })()`, context);
 assert.equal(cameraAndMole.earlyMole,false,'mole appeared during a normal opening run');
 assert.equal(cameraAndMole.lateMole,false,'mole appeared solely because a healthy shot ran long');
 assert.ok(cameraAndMole.shift>.5,'camera drag angle did not change the view');
 assert.ok(cameraAndMole.drift<1e-9,'camera angle did not remain selected');
+assert.ok(cameraAndMole.zoomShift>.5,'camera zoom did not change the view');
 assert.ok(cameraAndMole.riskyRescue,'sustained wrong-way travel did not trigger a rescue');
 console.log('Camera orbit and mole timing OK: perspective persists, normal route clear, wrong-way rescue activates');
 
