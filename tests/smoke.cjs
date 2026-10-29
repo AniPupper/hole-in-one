@@ -275,8 +275,8 @@ function checkCupRegressions() {
     const bowl=Math.max(0,1-dist/3.3), near=1/(1+Math.pow(dist/1.05,4));
     const slopeForce=bowl*(.4+2.7*bowl),drag=(.22+2.3*near)*shot.ballProfile.dragMultiplier;
     const ground=courseSurfaceAt(ball.x,ball.z,ball.y);
-    const ax=toCup.x*slopeForce-v.x*drag-(courseSurfaceAt(ball.x+.03,ball.z,ball.y)-ground)/.03*3.8;
-    const az=toCup.z*slopeForce-v.z*drag-(courseSurfaceAt(ball.x,ball.z+.03,ball.y)-ground)/.03*3.8;
+    const ax=toCup.x*slopeForce-v.x*drag-(courseSurfaceAt(ball.x+.03,ball.z,ball.y)-ground)/.03*5.0;
+    const az=toCup.z*slopeForce-v.z*drag-(courseSurfaceAt(ball.x,ball.z+.03,ball.y)-ground)/.03*5.0;
     const expected=Math.hypot(v.x+ax*dt,v.z+az*dt);
     const preAngle=Math.atan2(v.z+az*dt,v.x+ax*dt);
     const target=Math.atan2(toCup.z,toCup.x);
@@ -402,7 +402,7 @@ function checkCourse(catalog) {
       }
       for (let i = 0; i <= 100; i++) {
         const t = i/100, height = a.railHeightAt(t);
-        if (!Number.isFinite(height) || height < .15 || height > .56) throw Error('Invalid rail at hole ' + level);
+        if (!Number.isFinite(height) || height < .20 || height > .75) throw Error('Invalid rail at hole ' + level);
       }
       for (let i = 0; i < a.features.length; i++) for (let j = i + 1; j < a.features.length; j++) {
         const p = a.features[i], q = a.features[j];

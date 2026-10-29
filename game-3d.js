@@ -498,13 +498,15 @@
         quad(at(r0,a),at(r1,a),at(r1,b),at(r0,b),'#a0bf87',.025);
       }
     }
-    for(let i=0;i<48;i++){
+    const apronRings=[3.3,3.58,3.88,4.16];
+    for(let band=0;band<apronRings.length-1;band++)for(let i=0;i<48;i++){
       const a=i*2*Math.PI/48,b=(i+1)*2*Math.PI/48;
       const at=(r,angle)=>{const x=Math.cos(angle)*r,z=Math.sin(angle)*r;
         return V(x,surfaceHeight(x,z)+.021,z);};
-      quad(at(3.49,a),at(3.49,b),at(3.3,b),at(3.3,a),'#a1bf8c',.025);
+      quad(at(apronRings[band+1],a),at(apronRings[band+1],b),at(apronRings[band],b),at(apronRings[band],a),
+        band===1?'#9fbe88':'#a9c995',.025);
     }
-    for(const r of [.95,1.65,2.45,3.3]){const points=[];for(let i=0;i<48;i++){const a=i*2*Math.PI/48,x=Math.cos(a)*r,z=Math.sin(a)*r;points.push(V(x,surfaceHeight(x,z)+.025,z));}tube(points,.009,r===.95?'#ecedbb':'#b9d5a1',.05,5,true);}
+    for(const r of [.95,1.65,2.45,3.3,3.7,4.08]){const points=[];for(let i=0;i<48;i++){const a=i*2*Math.PI/48,x=Math.cos(a)*r,z=Math.sin(a)*r;points.push(V(x,surfaceHeight(x,z)+.025,z));}tube(points,.009,r===.95?'#ecedbb':'#b9d5a1',.05,5,true);}
     const floor=surfaceHeight(0,0),poleGround=surfaceHeight(.72,0);
     annulusXZ(0,floor+.029,0,.59,.57,.49,.47,'#f4e3b7',.25);
     for(let i=0;i<40;i++){const a=i*Math.PI/20,b=(i+1)*Math.PI/20;
@@ -649,6 +651,34 @@
   };
   const courseYaw=(layout,t)=>{const d=tangentAt(layout,t);return Math.atan2(d.z,d.x);};
   const groundAt=(layout,x,z)=>layout.heightAt(x,z);
+  function terrainPlinth(layout,feature,alongRadius,acrossRadius,topColor,sideColor){
+    // A low, terrain-sampled skirt extends each wide prop into the fairway.
+    // Its outer edge follows the actual hill while its inner lip supports the
+    // prop, so sloped ground never reads as an empty gap below a flat base.
+    const d=tangentAt(layout,feature.t),n={x:-d.z,z:d.x},segments=18;
+    const point=(radius,angle,lift)=>{
+      const along=Math.cos(angle)*alongRadius*radius,across=Math.sin(angle)*acrossRadius*radius;
+      const x=feature.x+d.x*along+n.x*across,z=feature.z+d.z*along+n.z*across;
+      return V(x,groundAt(layout,x,z)+lift,z);
+    };
+    for(let i=0;i<segments;i++){
+      const a=i*Math.PI*2/segments,b=(i+1)*Math.PI*2/segments;
+      const outerA=point(1,a,.012),outerB=point(1,b,.012);
+      const innerA=point(.70,a,.065),innerB=point(.70,b,.065);
+      quad(outerA,outerB,innerB,innerA,sideColor,.10);
+      const coreA=point(.42,a,.071),coreB=point(.42,b,.071);
+      quad(innerA,innerB,coreB,coreA,topColor,.17);
+    }
+  }
+  function featurePlinth(layout,feature){
+    const styles={
+      pad:[.86,.86,'#b894e5','#684391'],bumper:[.66,.66,'#e8a6ba','#9d596f'],
+      loop:[1.0,.76,'#8ed3d2','#3f8f95'],windmill:[.82,.70,'#dcb880','#966d4d'],
+      cannon:[1.06,.82,'#d5a271','#82583e']
+    };
+    const style=styles[feature.kind];
+    if(style)terrainPlinth(layout,feature,...style);
+  }
   const bowlDrop=(x,z)=>activeState?.cupBowlDrop?.(x,z)||0;
   function pointBeyond(layout,t,across){
     if(t>=0&&t<=1)return layout.pathPoint(t,across);
@@ -681,7 +711,9 @@
         const across0=-4.25+8.5*j/lanes,across1=-4.25+8.5*(j+1)/lanes;
         const tm=(t0+t1)/2,am=(across0+across1)/2,p=pointBeyond(layout,tm,am);
         const cupDist=Math.hypot(p.x-layout.cup.x,p.z-layout.cup.z);
-        if(cupDist<3.42)continue;
+        // Leave a generous overlap for the dedicated finish apron. Its
+        // continuous collar hides grid seams around the cup and backstop.
+        if(cupDist<4.08)continue;
         const river=riverLocal(layout,p.x,p.z);
         if(river&&Math.abs(river.across)<=3.25&&Math.abs(river.along-riverCenter(river.across))<.97)continue;
         const width=layout.corridorHalfWidth(Math.max(0,Math.min(1,tm)));
@@ -734,7 +766,8 @@
   }
   function modelLiveBackstop(layout,shot){
     const cup=layout.cup,d=tangentAt(layout,1),n={x:-d.z,z:d.x};
-    const cx=cup.x+d.x*1.25,cz=cup.z+d.z*1.25,w=1.8,h=.55,thick=.14;
+    const cx=cup.x+d.x*1.25,cz=cup.z+d.z*1.25,
+      w=Math.max(1.8,layout.corridorHalfWidth(.98)+.12),h=.55,thick=.14;
     const panelAt=shot&&Number.isFinite(shot.backstopFlapAt);
     const opening=panelAt?Math.max(0,Math.min(1,(shot.elapsed-shot.backstopFlapAt)/.22)):0;
     const angle=opening*Math.PI*.47;
@@ -756,11 +789,11 @@
     buildLiveTerrain(layout);
     for(const f of layout.features){
       const ground=groundAt(layout,f.x,f.z),yaw=courseYaw(layout,f.t);
-      if(f.kind==='pad')withPose(f.x,ground,f.z,yaw,()=>modelPad(0));
-      else if(f.kind==='bumper'&&!f.move)withPose(f.x,ground,f.z,0,modelBumper);
-      else if(f.kind==='loop')withPose(f.x,ground,f.z,yaw,modelLoop);
-      else if(f.kind==='windmill')withPose(f.x,ground,f.z,yaw,modelWindmill);
-      else if(f.kind==='cannon')withPose(f.x,ground,f.z,yaw,modelCannonBase);
+      if(f.kind==='pad'){featurePlinth(layout,f);withPose(f.x,ground,f.z,yaw,()=>modelPad(0));}
+      else if(f.kind==='bumper'&&!f.move){featurePlinth(layout,f);withPose(f.x,ground,f.z,0,modelBumper);}
+      else if(f.kind==='loop'){featurePlinth(layout,f);withPose(f.x,ground,f.z,yaw,modelLoop);}
+      else if(f.kind==='windmill'){featurePlinth(layout,f);withPose(f.x,ground,f.z,yaw,modelWindmill);}
+      else if(f.kind==='cannon'){featurePlinth(layout,f);withPose(f.x,ground,f.z,yaw,modelCannonBase);}
     }
     if(layout.river)bridgePose(layout,()=>modelWaterBridge(0,false));
     else for(const f of layout.features)if(f.kind==='bridge'){
@@ -895,7 +928,7 @@
     for(const raw of layout.features){
       const f=movingFeature?movingFeature(raw,featureTime):raw;
       const ground=groundAt(layout,f.x,f.z);
-      if(f.kind==='bumper'&&raw.move)withPose(f.x,ground,f.z,0,modelBumper);
+      if(f.kind==='bumper'&&raw.move){featurePlinth(layout,f);withPose(f.x,ground,f.z,0,modelBumper);}
       else if(f.kind==='windmill')withPose(f.x,ground,f.z,courseYaw(layout,f.t),()=>modelWindmillRotor(featureTime+(f.phase-.4)/1.5));
       else if(f.kind==='cannon'){
         const active=shot?.cannon?.id===f.id?shot.cannon.currentDir:null;

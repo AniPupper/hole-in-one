@@ -108,9 +108,10 @@ assert.equal(result.samples.length, 4);
 console.log(`3D physics contact OK: 4 rivers/bridges; cup depth ${result.cupDepth.toFixed(2)}, sink ${result.cupSeconds.toFixed(2)}s`);
 
 const feel = vm.runInContext(`(() => {
-  let widest=0;
+  let widest=0,moundClearance=Infinity;
   for(const level of [4,5,100,250]){
     setLayout(level);
+    for(const mound of layout.terrainMounds)moundClearance=Math.min(moundClearance,mound.clearance/mound.along);
     for(let t=.15;t<.90;t+=.025){
       const c=layout.pathPoint(t,0),center=layout.heightAt(c.x,c.z);
       for(const side of [-1,1]){
@@ -127,12 +128,27 @@ const feel = vm.runInContext(`(() => {
     for(let i=0;i<24;i++)stepPhysics(1/120);
     return{initial,earlyTravel:Math.hypot(ball.x-origin.x,ball.z-origin.z)};
   }
-  return{widest,half:launch(50),full:launch(100)};
+  return{widest,moundClearance,half:launch(50),full:launch(100)};
 })()`, context);
-assert.ok(feel.widest < .08, `fairway still has a steep side crown: ${feel.widest}`);
+assert.ok(feel.widest > .12 && feel.widest < .42,
+  `fairway undulation is missing or too steep: ${feel.widest}`);
+assert.ok(feel.moundClearance>=1.6,'terrain bump overlaps a course element or water');
 assert.ok(feel.full.initial / feel.half.initial > 2.1, 'full pull does not feel faster at launch');
 assert.ok(feel.full.earlyTravel / feel.half.earlyTravel > 1.8,
   'full pull does not cover more ground before course effects');
+
+const bankRecovery = vm.runInContext(`(() => {
+  setLayout(4);courseState={level:4,completed:false};
+  phase='ready';ball={...START};shot=null;updateCamera(1000);startShot(60,{x:160,y:0});
+  const t=.5,width=layout.corridorHalfWidth(t),p=layout.pathPoint(t,width+.42),lane=nearestPath(p.x,p.z);
+  ball={x:p.x,y:courseSurfaceAt(p.x,p.z,layout.heightAt(p.x,p.z)+BALL_RADIUS)+BALL_RADIUS,z:p.z};
+  shot.velocity={x:0,y:0,z:0};shot.elapsed=0;shot.lastGust=0;shot.lastMole=0;
+  stepPhysics(1/120);
+  const outward=shot.velocity.x*lane.normal.x+shot.velocity.z*lane.normal.z;
+  return{outward};
+})()`, context);
+assert.ok(bankRecovery.outward<0,'raised outer bank did not roll the ball back toward the green');
+console.log(`Terrain response OK: rolling fairway grades; outer bank returns the ball inward (${bankRecovery.outward.toFixed(2)})`);
 console.log(`3D feel OK: max lateral height difference ${feel.widest.toFixed(3)}, ` +
   `100%/50% speed ${(feel.full.initial / feel.half.initial).toFixed(2)}×, ` +
   `early travel ${(feel.full.earlyTravel / feel.half.earlyTravel).toFixed(2)}×`);

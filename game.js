@@ -41,11 +41,33 @@ function courseLayout(level) {
     const dx=b.x-a.x,dz=b.z-a.z,n=Math.hypot(dx,dz)||1;
     return{x:p.x-dz/n*across,y:p.y,z:p.z+dx/n*across};
   };
-  const corridorHalfWidth=t=>2.1+.9*Math.exp(-Math.max(0,t)*18);
+  // A broader green leaves room for alternate routes, a single playful bump,
+  // and visible side banks without crowding the ball's main line.
+  const corridorHalfWidth=t=>2.35+1.0*Math.exp(-Math.max(0,t)*18);
+  const terrainCandidates=Array.from({length:15},(_,index)=>.18+index*.046);
+  const terrainHazards=[...blueprint.features.map(feature=>feature.t), ...(blueprint.riverT===null?[]:[blueprint.riverT])];
+  const terrainSpot=terrainCandidates.reduce((best,t)=>{
+    const clearance=Math.min(...terrainHazards.map(hazard=>Math.abs(t-hazard)),t-.08,.93-t);
+    return clearance>best.clearance?{t,clearance}:best;
+  },{t:.5,clearance:0});
+  const terrainMounds=[
+    // Keep terrain clear of props and water. Tighter courses get a narrower
+    // mound rather than letting it visibly merge into an element base.
+    {t:terrainSpot.t,across:(level%3-1)*.16,
+      along:Math.max(.052,Math.min(.09,terrainSpot.clearance*.55)),wide:1.05,height:.34,
+      clearance:terrainSpot.clearance}
+  ];
+  const fairwayUndulationAt=(t,across)=>{
+    // One compact rise creates a clear route decision without long grades
+    // that can keep steering a rolling ball into the side rails.
+    const mounds=terrainMounds.reduce((sum,mound)=>sum+mound.height*Math.exp(
+      -(((t-mound.t)/mound.along)**2)-(((across-mound.across)/mound.wide)**2)),0);
+    return mounds;
+  };
   const railHeightAt=t=>{
     const a=Math.max(0,Math.min(1,(t-.10)/.05));
     const b=Math.max(0,Math.min(1,(.97-t)/.05));
-    const q=Math.min(a,b);return .16+.39*q*q*(3-2*q);
+    const q=Math.min(a,b);return .22+.52*q*q*(3-2*q);
   };
   const bankHeightAt=(x,z)=>{
     const t=(x-start.x)/span;if(t<0||t>1.08)return 0;
@@ -61,14 +83,16 @@ function courseLayout(level) {
     const outerFade=1-outerQ*outerQ*(3-2*outerQ);
     const teeFade=Math.max(0,Math.min(1,t/.055));
     const endFade=Math.max(0,Math.min(1,(1.08-t)/.08));
-    return .42*q*q*(3-2*q)*outerFade*teeFade*endFade;
+    return .58*q*q*(3-2*q)*(.82+.18*outerFade)*teeFade*endFade;
   };
   const heightAt=(x,z)=>{
     const t=Math.max(0,Math.min(1,(x-start.x)/span)),p=centerline(t);
-    const across=Math.hypot(x-p.x,z-p.z);
-    const rail=corridorHalfWidth(t),outside=Math.max(0,Math.min(1,(across-rail)/1.5));
+    const a=centerline(Math.max(0,t-.003)),b=centerline(Math.min(1,t+.003));
+    const dx=b.x-a.x,dz=b.z-a.z,n=Math.hypot(dx,dz)||1;
+    const signedAcross=(x-p.x)*(-dz/n)+(z-p.z)*(dx/n);
+    const across=Math.abs(signedAcross),rail=corridorHalfWidth(t),outside=Math.max(0,Math.min(1,(across-rail)/1.5));
     const hillFade=1-outside*outside*(3-2*outside);
-    return .04+(p.y-.04)*hillFade+bankHeightAt(x,z);
+    return .04+(p.y-.04)*hillFade+fairwayUndulationAt(t,signedAcross)+bankHeightAt(x,z);
   };
   const features=blueprint.features.map((spec,index)=>{
     const p=pathPoint(spec.t,spec.across);
@@ -87,7 +111,7 @@ function courseLayout(level) {
   const bounds={minX:start.x-1.65,maxX:cup.x+1.65,
     minZ:Math.min(...samples.map(p=>p.z))-4.15,maxZ:Math.max(...samples.map(p=>p.z))+4.15};
   return{level,theme,title:blueprint.title,subtitle:blueprint.subtitle,start,cup,span,bounds,
-    centerline,pathPoint,corridorHalfWidth,railHeightAt,bankHeightAt,heightAt,features,trees,river};
+    centerline,pathPoint,corridorHalfWidth,railHeightAt,bankHeightAt,heightAt,terrainMounds,features,trees,river};
 }
 const clubNames = { rookie: 'The Rookie', meteor: 'The Comet', cloud: 'Cloud Nine', lightning: 'The Spark', orbit: 'Orbit Driver', lotus: 'Lotus Launcher', volt: 'Volt Viper', nebula: 'The Nebula', rocket: 'Rocket Club', aurora: 'Aurora Ace', wildfire: 'Wildfire', starlift: 'Starlift', ripple: 'Ripple Maker', thunderhead: 'Thunderhead', sunforge: 'Sunforge', mirage: 'Mirage Maker', supernova: 'Supernova', skycrown: 'Skycrown', kaleido: 'Kaleido King' };
 const clubColors = { rookie: '#be8057', meteor: '#bf5a2c', cloud: '#71b6bd', lightning: '#9d70b6', orbit: '#7caa81', lotus: '#ca7499', volt: '#a7a247', nebula: '#686cb2', rocket: '#d46642', aurora: '#5ba997', wildfire: '#ed8242', starlift: '#7f9be6', ripple: '#51b9ba', thunderhead: '#a277d2', sunforge: '#efb655', mirage: '#d67ead', supernova: '#e57f58', skycrown: '#76b6df', kaleido: '#b68cdb' };
@@ -270,8 +294,11 @@ function pathTangent(t){
 }
 function backstopGeometry(){
   const tangent=pathTangent(1),normal={x:-tangent.z,z:tangent.x};
+  // Match the wider end-of-course fairway so the backstop meets the visible
+  // finish apron instead of leaving open shoulders at either side.
+  const halfSpan=Math.max(1.8,layout.corridorHalfWidth(.98)+.12);
   return{x:CUP.x+tangent.x*1.25,z:CUP.z+tangent.z*1.25,
-    tangent,normal,halfSpan:1.8,height:.55,thickness:.14};
+    tangent,normal,halfSpan,height:.55,thickness:.14};
 }
 function cameraDepth(p){const r={x:p.x-camera.eye.x,y:p.y-camera.eye.y,z:p.z-camera.eye.z};return r.x*camera.forward.x+r.y*camera.forward.y+r.z*camera.forward.z;}
 function project(x,y,z) {
@@ -811,11 +838,11 @@ function drawRescueEffect(t){
   ctx.restore();
 }
 function drawSlopeGuides(){
-  for(const [index,radius] of [.95,1.65,2.45,3.3].entries()){
+  for(const [index,radius] of [.95,1.65,2.45,3.3,3.7,4.08].entries()){
     const pts=[];
     for(let i=0;i<=48;i++){const a=i/48*Math.PI*2,x=CUP.x+Math.cos(a)*radius,z=CUP.z+Math.sin(a)*radius*.78;
       pts.push({x,y:layout.heightAt(x,z)+cupBowlDrop(x,z)+.06,z});}
-    lineWorld(pts,index%2?'#7b9f6288':'#fff3bcad',index===0?4:3,[index===0?0:14,index===0?0:10]);
+    lineWorld(pts,index%2?'#7b9f6288':'#fff3bcad',index===0?4:index>3?1.8:3,[index===0?0:14,index===0?0:10]);
   }
   for(const distance of [1.12,1.92,2.78]){
     const x=CUP.x-courseForward.x*distance,z=CUP.z-courseForward.z*distance;
@@ -1387,6 +1414,15 @@ function nearestPath(x,z){
   const p=layout.centerline(t),dir=pathTangent(t),normal={x:-dir.z,z:dir.x};
   return{t,across:(x-p.x)*normal.x+(z-p.z)*normal.z,normal};
 }
+function bankReturnAcceleration(lane){
+  const width=layout.corridorHalfWidth(lane.t),side=Math.sign(lane.across)||1;
+  const overflow=Math.max(0,Math.abs(lane.across)-width+.03);
+  if(!overflow||lane.t<.08||lane.t>.98)return{x:0,z:0};
+  // The raised turf outside the timber rail rolls a slow ball back onto the
+  // playable green. Its force grows gradually, matching the visible bank.
+  const strength=Math.min(4.8,1.25+overflow*4.2);
+  return{x:-lane.normal.x*side*strength,z:-lane.normal.z*side*strength};
+}
 function railContact(before){
   const here=nearestPath(ball.x,ball.z),prior=nearestPath(before.x,before.z);
   if(here.t<.10||here.t>.97)return;
@@ -1607,9 +1643,13 @@ function stepPhysics(dt){
   }
   let ax=toCup.x*slopeForce-v.x*drag;
   let az=toCup.z*slopeForce-v.z*drag;
+  const lane=nearestPath(ball.x,ball.z);
   // A real raised course changes the ball's speed along its visible hill/ramp.
   const groundHere=courseSurfaceAt(ball.x,ball.z,ball.y),groundAheadX=courseSurfaceAt(ball.x+.03,ball.z,ball.y),groundAheadZ=courseSurfaceAt(ball.x,ball.z+.03,ball.y);
-  if(ball.y<=groundHere+BALL_RADIUS+.04){ax-=(groundAheadX-groundHere)/.03*3.8;az-=(groundAheadZ-groundHere)/.03*3.8;}
+  if(ball.y<=groundHere+BALL_RADIUS+.04){
+    ax-=(groundAheadX-groundHere)/.03*5.0;az-=(groundAheadZ-groundHere)/.03*5.0;
+    const returnSlope=bankReturnAcceleration(lane);ax+=returnSlope.x;az+=returnSlope.z;
+  }
   // Side spin is set by the player's initial aim, then decays as the ball rolls.
   const spin=shot.spinSign*shot.ballProfile.spinRate*shot.clubProfile.spinMultiplier*Math.max(0,1-shot.elapsed/4);
   ax+=-v.z*spin;az+=v.x*spin;
@@ -1637,7 +1677,7 @@ function stepPhysics(dt){
   const assisted=gustAge>=0&&gustAge<2.65;
   shot.windActive=assisted;
   if(assisted){const ramp=Math.min(1,gustAge/.55),fade=Math.min(1,(2.65-gustAge)/.7);const strength=(shot.gustStrength||1.05)*ramp*fade;ax+=toCup.x*strength;az+=toCup.z*strength;}
-  const lane=nearestPath(ball.x,ball.z),offLane=Math.abs(lane.across)>layout.corridorHalfWidth(lane.t)+.55;
+  const offLane=Math.abs(lane.across)>layout.corridorHalfWidth(lane.t)+.55;
   const outward=(v.x*lane.normal.x+v.z*lane.normal.z)*Math.sign(lane.across||1);
   const behindTee=ball.x<START.x-.4;
   const needsMole=dist>2.6&&shot.elapsed-shot.lastMole>1.9&&
