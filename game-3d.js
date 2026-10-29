@@ -323,20 +323,20 @@
   function modelWindmill(){
     shadow(0,0,.78,.58);ringXZ(0,.045,0,.61,.49,.055,'#d2a875',.12);
     // The opening runs through the base along the course's forward X axis.
-    // Its 0.62-wide interior clears the ball along the rewarded center line.
-    box(0,.39,-.40,1.1,.70,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
-    box(0,.39,.40,1.1,.70,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
-    box(0,.755,0,1.12,.13,.78,'#b98458',.16);
-    ellipticalFrustum(0,0,.82,2.1,.46,.34,.33,.20,'#c99a6e','#ecd1a3',20);
-    box(0,.05,0,1.28,.015,.60,'#314b3f',.1);
+    // The wider opening matches the center clearance used by windmillContact.
+    box(0,.43,-.48,1.1,.78,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
+    box(0,.43,.48,1.1,.78,.18,['#d5ab7b','#916746','#b8875e','#b8875e','#c99a6e','#a77550'],.2);
+    box(0,.865,0,1.12,.13,.94,'#b98458',.16);
+    ellipticalFrustum(0,0,.93,2.1,.46,.34,.33,.20,'#c99a6e','#ecd1a3',20);
+    box(0,.05,0,1.28,.015,.76,'#314b3f',.1);
     for(const end of [-.555,.555]){
       const arch=[];
       for(let i=0;i<=16;i++){
-        const across=-.31+i*.62/16;
-        arch.push(V(end,.57+.19*Math.sqrt(Math.max(0,1-(across/.31)**2)),across));
+        const across=-.39+i*.78/16;
+        arch.push(V(end,.65+.21*Math.sqrt(Math.max(0,1-(across/.39)**2)),across));
       }
       tube(arch,.025,'#f5d798',.25,7);
-      for(const side of [-1,1])tube([V(end,.10,side*.31),V(end,.57,side*.31)],.018,'#f5d798',.2,6);
+      for(const side of [-1,1])tube([V(end,.10,side*.39),V(end,.65,side*.39)],.018,'#f5d798',.2,6);
     }
     for(const along of [-.28,.18])polygon([V(along-.12,.06,-.09),V(along+.10,.06,0),V(along-.12,.06,.09)],'#ffdf8b',.18);
     const roofA=V(-.48,2.06,.29),roofB=V(.48,2.06,.29),roofC=V(.48,2.06,-.28),roofD=V(-.48,2.06,-.28),peak=V(0,2.54,.02);
@@ -905,7 +905,7 @@
       }
     }
     if(layout.river)bridgePose(layout,()=>modelWaterSurface(featureTime));
-    if(shot?.mole?.active){
+    if(shot?.mole&&!shot.mole.hidden&&shot.elapsed<(shot.mole.visualUntil??shot.mole.until)){
       const mole=shot.mole,ground=groundAt(layout,mole.x,mole.z);
       withPose(mole.x-1.04,ground,mole.z,0,()=>modelMole(featureTime));
     }

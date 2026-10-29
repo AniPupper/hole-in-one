@@ -60,6 +60,7 @@ let modalReturnFocus = null;
 let claimRevealTimer = null;
 let claimSelectedId = null;
 let cartBallId = null;
+let detailSelection = null;
 
 function restoreCart() {
   try {
@@ -181,6 +182,8 @@ function render() {
   document.getElementById('equipped-sub').textContent = clubs[progress.equipped].description;
   document.getElementById('equipped-ball-name').textContent = balls[progress.equippedBall].name;
   document.getElementById('equipped-ball-dot').style.setProperty('--equipped-ball-color', balls[progress.equippedBall].color);
+  document.getElementById('hero-equipped-club').textContent = clubs[progress.equipped].name;
+  document.getElementById('hero-equipped-ball').textContent = balls[progress.equippedBall].name;
 
   document.getElementById('reward-kicker').textContent = complete ? 'NEXT DROP' : `TIER ${String(tierIndex + 1).padStart(2, '0')}`;
   const rewardTitle = document.getElementById('reward-title');
@@ -198,21 +201,15 @@ function render() {
   grid.innerHTML = tier.choices.map((id, index) => {
     const club = clubs[id];
     const selected = claimSelectedId === id;
-    return `<button class="club-card ${selected ? 'selected' : ''} ${unlocked && !complete ? 'available' : ''} ${!unlocked && !complete ? 'locked' : ''}" type="button" data-club="${id}" aria-pressed="${selected}" ${complete || !unlocked ? 'disabled' : ''}>
+    return `<button class="club-card ${selected ? 'selected' : ''} ${unlocked && !complete ? 'available' : ''} ${!unlocked && !complete ? 'locked' : ''}" type="button" data-club="${id}" aria-label="View details for ${club.name}">
       <div class="club-art ${club.art}" ${club.rank ? `style="--club-color:${club.color};--club-grip:${club.grip}"` : ''}><span class="price-badge" title="${tier.threshold.toLocaleString()} XP">${priceBadge(tier.threshold)}</span><span class="art-spark one">✦</span><span class="art-spark two">✳</span>${clubArtwork(club)}<span class="card-check">${selected ? '✓' : ''}</span></div>
       <div class="card-body"><div class="card-row"><span class="card-kicker">${club.type}</span><span class="rarity-badge">${rarityLabel(club, tierIndex)}</span></div><h3>${club.name}</h3><span class="card-tag">${club.tag}</span>
-        ${comparisonMarkup(club, clubs[progress.equipped], ['DIST', 'HEIGHT', 'TRICKS'])}
-        ${statRow('DISTANCE', club.stats[0])}${statRow('HEIGHT', club.stats[1])}${statRow('TRICKS', club.stats[2])}
-        <div class="card-bottom"><span>${complete ? progress.owned.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART' : unlocked ? 'ADD TO CART' : `<span class="xp-inline">${Math.max(0, tier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`}</span><span class="card-arrow">↗</span></div>
+        <div class="card-bottom"><span>${complete ? progress.owned.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART · VIEW DETAILS' : 'VIEW DETAILS + COMPARE'}</span><span class="card-arrow">↗</span></div>
       </div></button>`;
   }).join('');
   grid.querySelectorAll('[data-club]').forEach((button) => button.addEventListener('click', () => {
     selectedId = button.dataset.club;
-    if (unlocked) openClaimCart(selectedId);
-    else {
-      render();
-      grid.querySelector(`[data-club="${selectedId}"]`).focus();
-    }
+    openGearDetail('club', selectedId);
   }));
 
   const ballTierIndex = currentBallTierIndex();
@@ -229,15 +226,102 @@ function render() {
     const item = balls[id];
     const selected = cartBallId === id;
     const state = ballsComplete ? progress.ownedBalls.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART' : ballsUnlocked ? 'ADD TO CART' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`;
-    return `<button class="ball-card ${selected ? 'selected' : ''} ${ballsUnlocked ? 'available' : 'locked'}" type="button" data-ball="${id}" aria-pressed="${selected}" ${ballsComplete || !ballsUnlocked ? 'disabled' : ''}><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="rarity-badge">${rarityLabel(item, ballTierIndex)}</span></div><h3>${item.name}</h3><span class="card-tag">${item.tag}</span>${comparisonMarkup(item, balls[progress.equippedBall], ['BOUNCE', 'SPIN', 'ROLL'])}<div class="ball-stats">${statRow('BOUNCE', item.stats[0])}${statRow('SPIN', item.stats[1])}${statRow('ROLL', item.stats[2])}</div><div class="card-bottom"><span>${state}</span><span class="card-arrow">↗</span></div></div></button>`;
+    return `<button class="ball-card ${selected ? 'selected' : ''} ${ballsUnlocked ? 'available' : 'locked'}" type="button" data-ball="${id}" aria-label="View details for ${item.name}"><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="rarity-badge">${rarityLabel(item, ballTierIndex)}</span></div><h3>${item.name}</h3><span class="card-tag">${item.tag}</span><div class="card-bottom"><span>${selected ? 'IN CART · VIEW DETAILS' : 'VIEW DETAILS + COMPARE'}</span><span class="card-arrow">↗</span></div></div></button>`;
   }).join('');
   ballGrid.querySelectorAll('[data-ball]').forEach((button) => button.addEventListener('click', () => {
     selectedBallId = button.dataset.ball;
-    if (ballsUnlocked) openClaimCart(null, selectedBallId);
-    else { render(); ballGrid.querySelector(`[data-ball="${selectedBallId}"]`)?.focus(); }
+    openGearDetail('ball', selectedBallId);
   }));
+  renderFuturePreviews();
   renderCartSummary();
 }
+
+function renderFuturePreviews() {
+  const future = [];
+  for (const [kind, collection, index] of [
+    ['CLUB', tiers, currentTierIndex()], ['BALL', ballTiers, currentBallTierIndex()]
+  ]) {
+    for (let offset = 1; offset <= 3 && index + offset < collection.length; offset++) {
+      const next = index + offset;
+      future.push(`<div class="future-card" aria-label="Locked ${kind.toLowerCase()} drop at tier ${next + 1}">
+        <span class="future-symbol" aria-hidden="true">${kind === 'CLUB' ? '✦' : '●'}</span>
+        <div><span>${kind} · TIER ${String(next + 1).padStart(2, '0')}</span><strong>Locked drop</strong><small>${priceBadge(collection[next].threshold)} to unlock</small></div>
+      </div>`);
+    }
+  }
+  document.getElementById('future-grid').innerHTML = future.join('') || '<div class="future-card">More gear is on the way.</div>';
+}
+
+function closeGearDetail(restoreFocus = true) {
+  const panel = document.getElementById('detail-panel');
+  panel.hidden = true;
+  if (restoreFocus && detailSelection) {
+    const selector = detailSelection.kind === 'club' ? `[data-club="${detailSelection.id}"]` : `[data-ball="${detailSelection.id}"]`;
+    document.querySelector(selector)?.focus();
+  }
+  detailSelection = null;
+}
+
+function renderDetailComparison() {
+  if (!detailSelection) return;
+  const { kind, id } = detailSelection;
+  const catalog = kind === 'club' ? clubs : balls;
+  const item = catalog[id];
+  const reference = catalog[document.getElementById('detail-compare').value] || catalog[kind === 'club' ? progress.equipped : progress.equippedBall];
+  const labels = kind === 'club' ? ['DISTANCE', 'HEIGHT', 'TRICKS'] : ['BOUNCE', 'SPIN', 'ROLL'];
+  const scale = Math.max(10, ...item.stats, ...reference.stats);
+  document.getElementById('detail-chart').innerHTML = item.stats.map((value, index) => {
+    const other = reference.stats[index], delta = value - other;
+    return `<div class="detail-chart-row"><span>${labels[index]}</span>
+      <div class="detail-bars"><i class="candidate-bar" style="width:${Math.max(3, value / scale * 100)}%"></i><i class="reference-bar" style="width:${Math.max(3, other / scale * 100)}%"></i></div>
+      <strong class="${delta < 0 ? 'loss' : ''}">${value} <small>${delta > 0 ? '+' : delta < 0 ? '−' : '='}${Math.abs(delta)}</small></strong></div>`;
+  }).join('');
+}
+
+function openGearDetail(kind, id) {
+  progress = loadProgress();
+  const catalog = kind === 'club' ? clubs : balls;
+  const tierIndex = kind === 'club' ? currentTierIndex() : currentBallTierIndex();
+  const tier = (kind === 'club' ? tiers : ballTiers)[tierIndex];
+  if (!catalog[id] || !tier.choices.includes(id)) return;
+  if (!document.getElementById('claim-modal').hidden) hideModal('claim-modal');
+  detailSelection = { kind, id };
+  const item = catalog[id];
+  const art = document.getElementById('detail-art');
+  art.className = kind === 'club' ? `detail-art club-art ${item.art || ''}` : `detail-art ball-art ${item.rank ? 'generated' : ''}`;
+  art.style.cssText = kind === 'club' ? `--club-color:${item.color};--club-grip:${item.grip}` : `--ball-color:${item.color};--ball-accent:${item.accent}`;
+  art.innerHTML = kind === 'club' ? clubArtwork(item) : window.BallUpgrades.artwork(id);
+  document.getElementById('detail-type').textContent = item.type;
+  document.getElementById('detail-rarity').textContent = rarityLabel(item, tierIndex);
+  document.getElementById('detail-title').textContent = item.name;
+  document.getElementById('detail-tag').textContent = item.tag;
+  document.getElementById('detail-price').textContent = `${tier.threshold.toLocaleString()} XP`;
+  const equippedId = kind === 'club' ? progress.equipped : progress.equippedBall;
+  const options = [{ id: equippedId, label: `Equipped · ${catalog[equippedId].name}` }];
+  for (const choice of tier.choices) if (choice !== id && !options.some(option => option.id === choice))
+    options.push({ id: choice, label: catalog[choice].name });
+  const comparison = document.getElementById('detail-compare');
+  comparison.innerHTML = options.map(option => `<option value="${option.id}">${option.label}</option>`).join('');
+  comparison.value = equippedId;
+  renderDetailComparison();
+  const add = document.getElementById('detail-add');
+  const complete = kind === 'club' ? allClaimed() : allBallsClaimed();
+  const shortfall = Math.max(0, tier.threshold - progress.xp);
+  add.disabled = complete || shortfall > 0;
+  add.textContent = complete ? 'Find owned gear in My Gear' : shortfall ? `${shortfall.toLocaleString()} XP to unlock` :
+    (kind === 'club' ? claimSelectedId : cartBallId) === id ? 'In cart · View cart' : 'Add to cart';
+  document.getElementById('detail-panel').hidden = false;
+  document.getElementById('detail-close').focus();
+}
+
+document.getElementById('detail-close').addEventListener('click', () => closeGearDetail());
+document.getElementById('detail-compare').addEventListener('change', renderDetailComparison);
+document.getElementById('detail-add').addEventListener('click', () => {
+  if (!detailSelection || document.getElementById('detail-add').disabled) return;
+  const { kind, id } = detailSelection;
+  closeGearDetail(false);
+  openClaimCart(kind === 'club' ? id : null, kind === 'ball' ? id : null);
+});
 
 function renderCartSummary() {
   const count = Number(!!claimSelectedId) + Number(!!cartBallId);
@@ -285,29 +369,24 @@ function openClaimCart(clubId = null, ballId = null) {
   const canBall = !allBallsClaimed() && progress.xp >= ballTier.threshold;
   if (clubId && canClub && clubTier.choices.includes(clubId)) claimSelectedId = clubId;
   if (ballId && canBall && ballTier.choices.includes(ballId)) cartBallId = ballId;
+  if (!document.getElementById('detail-panel').hidden) closeGearDetail(false);
   render();
 
   const dialog = document.querySelector('#claim-modal .claim-dialog');
   dialog.classList.remove('celebrating', 'revealed');
   document.getElementById('claim-close').setAttribute('aria-label', 'Close cart');
   document.getElementById('claim-title').textContent = 'Your cart.';
-  document.getElementById('claim-intro').textContent = 'Review your gear and XP before buying.';
+  document.getElementById('claim-intro').textContent = 'Your selected gear, ready when you are.';
   const clubChoices = document.getElementById('claim-cart-choices');
-  clubChoices.innerHTML = canClub
-    ? `<button class="cart-choice cart-none" type="button" data-cart-club="" aria-pressed="false">No club</button>${clubTier.choices.map(id => `<button class="cart-choice" type="button" data-cart-club="${id}" aria-pressed="false">${clubs[id].name}</button>`).join('')}`
-    : `<span class="cart-unavailable">${allClaimed() ? 'New club drop incoming' : `${Math.max(0, clubTier.threshold - progress.xp).toLocaleString()} XP to next club`}</span>`;
-  clubChoices.querySelectorAll('[data-cart-club]').forEach(button => button.addEventListener('click', () => updateCartChoice(button.dataset.cartClub || null)));
   const ballChoices = document.getElementById('claim-ball-choices');
-  ballChoices.innerHTML = canBall
-    ? `<button class="cart-choice cart-none" type="button" data-cart-ball="" aria-pressed="false">No ball</button>${ballTier.choices.map((id, i) => `<button class="cart-choice cart-ball-choice" type="button" data-cart-ball="${id}" aria-pressed="false"><span class="cart-ball-dot" style="--cart-ball:${balls[id].color}"></span><span>${balls[id].name}${i === 0 ? '<small>★ POPULAR</small>' : ''}</span></button>`).join('')}`
-    : `<span class="cart-unavailable">${allBallsClaimed() ? 'New ball drop incoming' : `${Math.max(0, ballTier.threshold - progress.xp).toLocaleString()} XP to next ball`}</span>`;
-  ballChoices.querySelectorAll('[data-cart-ball]').forEach(button => button.addEventListener('click', () => updateCartBallChoice(button.dataset.cartBall || null)));
+  clubChoices.innerHTML = '';
+  ballChoices.innerHTML = '';
   document.getElementById('claim-announcement').textContent = '';
   document.getElementById('claim-back').hidden = false;
   document.getElementById('claim-confirm').hidden = false;
   document.getElementById('claim-done').hidden = true;
-  clubChoices.hidden = false;
-  ballChoices.hidden = false;
+  clubChoices.hidden = true;
+  ballChoices.hidden = true;
   renderCart();
   showModal('claim-modal');
   (claimSelectedId || cartBallId ? document.getElementById('claim-confirm') : document.getElementById('claim-close')).focus();
@@ -332,6 +411,8 @@ function renderCart() {
   const clubCost = claimSelectedId ? tiers[currentTierIndex()].threshold : 0;
   const ballCost = cartBallId ? ballTiers[currentBallTierIndex()].threshold : 0;
   const needed = clubCost + ballCost;
+  document.getElementById('cart-club-item').hidden = !claimSelectedId;
+  document.getElementById('cart-ball-item').hidden = !cartBallId;
   document.getElementById('claim-intro').textContent = itemCount === 2
     ? 'Two upgrades. One checkout.'
     : itemCount ? 'Your next upgrade is ready.' : 'Your cart is empty. Choose gear from the shop.';
@@ -362,18 +443,13 @@ function renderCart() {
   document.getElementById('claim-confirm-price').hidden = !needed;
   document.getElementById('claim-confirm-text').textContent = itemCount === 2 ? 'Purchase both' : claimSelectedId ? 'Purchase club' : cartBallId ? 'Purchase ball' : 'Choose gear';
   document.getElementById('claim-confirm').disabled = !itemCount || progress.xp < needed;
-  document.querySelectorAll('[data-cart-club]').forEach(button => {
-    const selected = (button.dataset.cartClub || null) === claimSelectedId;
-    button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', selected);
-  });
-  document.querySelectorAll('[data-cart-ball]').forEach(button => {
-    const selected = (button.dataset.cartBall || null) === cartBallId;
-    button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', selected);
-  });
 }
 
 document.getElementById('claim-button').addEventListener('click', () => openClaimCart());
-document.getElementById('topbar-cart').addEventListener('click', () => openClaimCart());
+document.getElementById('topbar-cart').addEventListener('click', () => {
+  if (!document.getElementById('claim-modal').hidden) hideModal('claim-modal');
+  else openClaimCart();
+});
 document.getElementById('cart-club-preview').addEventListener('click', (event) => { if (event.target.closest('[data-remove-club]')) updateCartChoice(null); });
 document.getElementById('cart-ball-preview').addEventListener('click', (event) => { if (event.target.closest('[data-remove-ball]')) updateCartBallChoice(null); });
 document.getElementById('pair-suggestion').addEventListener('click', (event) => {
@@ -451,8 +527,10 @@ function showModal(id) {
   modalReturnFocus = document.activeElement;
   const modal = document.getElementById(id);
   modal.hidden = false;
-  document.querySelector('.app-shell').inert = true;
-  document.body.style.overflow = 'hidden';
+  if (id !== 'claim-modal') {
+    document.querySelector('.app-shell').inert = true;
+    document.body.style.overflow = 'hidden';
+  }
   modal.querySelector('.modal-close').focus();
 }
 function hideModal(id) {
@@ -468,8 +546,10 @@ function hideModal(id) {
     dragStart = null;
   }
   document.getElementById(id).hidden = true;
-  document.querySelector('.app-shell').inert = false;
-  document.body.style.overflow = '';
+  if (id !== 'claim-modal') {
+    document.querySelector('.app-shell').inert = false;
+    document.body.style.overflow = '';
+  }
   if (modalReturnFocus?.isConnected && !modalReturnFocus.disabled) modalReturnFocus.focus();
   else document.getElementById('nav-collection').focus();
   modalReturnFocus = null;
@@ -494,20 +574,26 @@ function openPractice() {
 document.getElementById('modal-close').addEventListener('click', () => hideModal('practice-modal'));
 document.getElementById('back-to-shop').addEventListener('click', () => hideModal('practice-modal'));
 
-document.getElementById('nav-collection').addEventListener('click', () => {
+function openCollection() {
   const ids = [...new Set(['rookie', ...progress.owned, progress.equipped])];
   const ballIds = [...new Set(['classic', ...progress.ownedBalls, progress.equippedBall])];
   document.getElementById('collection-list').innerHTML = `<div class="collection-group-title">CLUBS</div>${ids.map((id) => `<div class="collection-entry"><span class="collection-emblem">${clubs[id].icon}</span><div><strong>${clubs[id].name}</strong><small>${clubs[id].description}</small></div>${id === progress.equipped ? '<span class="collection-equipped">EQUIPPED</span>' : ''}</div>`).join('')}<div class="collection-group-title">BALLS</div>${ballIds.map((id) => `<div class="collection-entry"><span class="collection-emblem collection-ball-emblem" style="--collection-ball:${balls[id].color}">●</span><div><strong>${balls[id].name}</strong><small>${balls[id].type}</small></div>${id === progress.equippedBall ? '<span class="collection-equipped">EQUIPPED</span>' : ''}</div>`).join('')}`;
   showModal('collection-modal');
-});
+}
+document.getElementById('nav-collection').addEventListener('click', openCollection);
+document.getElementById('gear-summary').addEventListener('click', openCollection);
 document.getElementById('collection-close').addEventListener('click', () => hideModal('collection-modal'));
 document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.addEventListener('click', (event) => { if (event.target === backdrop) hideModal(backdrop.id); }));
 document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !document.getElementById('detail-panel').hidden) {
+    closeGearDetail();
+    return;
+  }
   const modal = document.querySelector('.modal-backdrop:not([hidden])');
   if (!modal) return;
   if (event.key === 'Escape') {
     hideModal(modal.id);
-  } else if (event.key === 'Tab') {
+  } else if (event.key === 'Tab' && modal.id !== 'claim-modal') {
     const focusable = [...modal.querySelectorAll('button:not([disabled]):not([hidden]), [tabindex]:not([tabindex="-1"])')]
       .filter((element) => element.getClientRects().length);
     if (!focusable.length) return;

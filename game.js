@@ -4,9 +4,13 @@ const START = { x: -4.15, y: .23, z: 2.65 };
 const CUP = { x: 4.03, y: .04, z: -2.35 };
 const BALL_RADIUS = .19;
 const WINDMILL_TUNNEL_XP = 75;
-const WINDMILL_TUNNEL_HALF_WIDTH = .12;
-const WINDMILL_TUNNEL_ROOF = .78;
+const WINDMILL_TUNNEL_HALF_WIDTH = .20;
+const WINDMILL_TUNNEL_ROOF = .86;
 const WINDMILL_TUNNEL_HALF_LENGTH = .55;
+const MOLE_VISIBLE_SECONDS = 2.1;
+const MOLE_AFTER_CONTACT_SECONDS = 1.25;
+const MOLE_RAIL_CLEARANCE = .65;
+const MOLE_FEATURE_CLEARANCE = 1.0;
 // All scenery and contacts use the same seeded, world-space course.  A hole's
 // number is its seed, so returning to that hole reproduces its exact layout.
 function courseLayout(level) {
@@ -690,17 +694,17 @@ function drawWindmill(feature,t){
   ellipseWorld(x,ground+.018,z,.82,.59,'#203d344f');
   raisedDisc(x,z,ground,.61,.49,.09,'#855d42','#d4aa77','#f6ddb0');
   const tunnelPoint=point;
-  poly([tunnelPoint(-.58,-.30,.04),tunnelPoint(.58,-.30,.04),tunnelPoint(.58,.30,.04),tunnelPoint(-.58,.30,.04)],'#725b45','#f6d99e',2);
+  poly([tunnelPoint(-.58,-.38,.04),tunnelPoint(.58,-.38,.04),tunnelPoint(.58,.38,.04),tunnelPoint(-.58,.38,.04)],'#725b45','#f6d99e',2);
   for(const side of [-1,1]){
-    const near=side*.31,far=side*.49;
-    poly([tunnelPoint(-.55,near,.1),tunnelPoint(.55,near,.1),tunnelPoint(.55,near,.77),tunnelPoint(-.55,near,.77)],side<0?'#b8875e':'#d5ab7b','#8b6041',1);
-    poly([tunnelPoint(-.55,far,.1),tunnelPoint(.55,far,.1),tunnelPoint(.55,far,.77),tunnelPoint(-.55,far,.77)],side<0?'#9c6c4b':'#c59468','#8b6041',1);
+    const near=side*.39,far=side*.57;
+    poly([tunnelPoint(-.55,near,.1),tunnelPoint(.55,near,.1),tunnelPoint(.55,near,.85),tunnelPoint(-.55,near,.85)],side<0?'#b8875e':'#d5ab7b','#8b6041',1);
+    poly([tunnelPoint(-.55,far,.1),tunnelPoint(.55,far,.1),tunnelPoint(.55,far,.85),tunnelPoint(-.55,far,.85)],side<0?'#9c6c4b':'#c59468','#8b6041',1);
   }
-  poly([point(-.46,.34,.82),point(.46,.34,.82),point(.33,.14,2.06),point(-.33,.14,2.06)], '#f5dbad','#b76b3d',2);
-  poly([point(.46,.34,.82),point(.46,-.34,.82),point(.31,-.17,2.06),point(.33,.14,2.06)], '#d9a977','#a36b47',2);
-  poly([point(-.46,.34,.82),point(-.46,-.34,.82),point(-.31,-.17,2.06),point(-.33,.14,2.06)], '#be8c61','#a36b47',2);
+  poly([point(-.46,.42,.93),point(.46,.42,.93),point(.33,.14,2.06),point(-.33,.14,2.06)], '#f5dbad','#b76b3d',2);
+  poly([point(.46,.42,.93),point(.46,-.42,.93),point(.31,-.17,2.06),point(.33,.14,2.06)], '#d9a977','#a36b47',2);
+  poly([point(-.46,.42,.93),point(-.46,-.42,.93),point(-.31,-.17,2.06),point(-.33,.14,2.06)], '#be8c61','#a36b47',2);
   for(const along of [-.55,.55]){
-    const arch=[];for(let i=0;i<=12;i++){const across=-.31+i*.62/12;arch.push(tunnelPoint(along,across,.57+.19*Math.sqrt(Math.max(0,1-(across/.31)**2))));}
+    const arch=[];for(let i=0;i<=12;i++){const across=-.39+i*.78/12;arch.push(tunnelPoint(along,across,.65+.21*Math.sqrt(Math.max(0,1-(across/.39)**2))));}
     lineWorld(arch,'#f6dda0',Math.max(2,project(x,ground+.5,z).scale*.025));
   }
   lineWorld([tunnelPoint(-.37,0,.05),tunnelPoint(.36,0,.05)],'#ffe59e',3);
@@ -733,7 +737,7 @@ function drawWindmill(feature,t){
 }
 function drawMole(mole){
   const ground=layout.heightAt(mole.x,mole.z),age=Math.max(0,shot.elapsed-mole.startedAt);
-  const pop=Math.min(1,age/.065),fade=Math.min(1,Math.max(0,(mole.until-shot.elapsed)/.22));
+  const pop=Math.min(1,age/.065),fade=Math.min(1,Math.max(0,((mole.visualUntil??mole.until)-shot.elapsed)/.22));
   ellipseWorld(mole.x,ground+.015,mole.z,.48,.42,'#6f563c','#cfad77',3);
   ellipseWorld(mole.x,ground+.02,mole.z,.36,.31,'#342f2a');
   if(pop<=0||fade<=0)return;
@@ -751,7 +755,8 @@ function drawMole(mole){
 }
 function drawFeatures(t){
   const features=layout.features.map(f=>movingFeature(f,t/1000));
-  if(shot?.mole?.active)features.push({...shot.mole,kind:'mole',y:layout.heightAt(shot.mole.x,shot.mole.z)});
+  if(shot?.mole&&!shot.mole.hidden&&shot.elapsed<(shot.mole.visualUntil??shot.mole.until))
+    features.push({...shot.mole,kind:'mole',y:layout.heightAt(shot.mole.x,shot.mole.z)});
   features.sort((a,b)=>project(b.x,b.y,b.z).depth-project(a.x,a.y,a.z).depth);
   for(const f of features){
     if(f.kind==='bumper')drawBumper(f);
@@ -979,7 +984,8 @@ function sparkleBurst(x,y,count=20){const colors=['#bf5a2c','#f3c36b','#fff0cc',
 function drawDepthObjects(t){
   const objects=layout.features.map(f=>movingFeature(f,t/1000));
   for(const item of layout.trees)objects.push({...item,y:layout.heightAt(item.x,item.z),kind:'tree'});
-  if(shot?.mole?.active)objects.push({...shot.mole,kind:'mole',y:layout.heightAt(shot.mole.x,shot.mole.z)});
+  if(shot?.mole&&!shot.mole.hidden&&shot.elapsed<(shot.mole.visualUntil??shot.mole.until))
+    objects.push({...shot.mole,kind:'mole',y:layout.heightAt(shot.mole.x,shot.mole.z)});
   const backstop=backstopGeometry();
   objects.push({kind:'backstop',x:backstop.x,y:layout.heightAt(backstop.x,backstop.z)+backstop.height*.5,z:backstop.z});
   objects.push({kind:'cup',x:CUP.x,y:.04,z:CUP.z},{kind:'ball',x:ball.x,y:ball.y,z:ball.z});
@@ -1173,6 +1179,26 @@ const curatedClubStats={
   thunderhead:[13,10,11],sunforge:[11,14,10],mirage:[11,11,14],
   supernova:[16,12,13],skycrown:[13,16,12],kaleido:[12,13,16]
 };
+const curatedClubTiers=[
+  ['meteor','cloud','lightning'],['orbit','lotus','volt'],['nebula','rocket','aurora'],
+  ['wildfire','starlift','ripple'],['thunderhead','sunforge','mirage'],['supernova','skycrown','kaleido']
+];
+function equippedGearTier(kind,id){
+  if(kind==='ball')return Math.max(0,window.BallUpgrades?.tiers.findIndex(tier=>tier.choices.includes(id))+1||0);
+  const generated=/^club-t(\d+)-[abc]$/.exec(id||'');
+  if(generated)return Number(generated[1]);
+  return Math.max(0,curatedClubTiers.findIndex(tier=>tier.includes(id))+1);
+}
+function gearFreshnessMultiplier(level=layout.level){
+  // A neglected loadout loses at most six percent of its launch pace. Any
+  // recent club or ball purchase refreshes it, without blocking a hole-in-one.
+  // The expectation rises slowly with course count so ordinary XP earnings
+  // can keep pace with available shop tiers.
+  const expectedTier=Math.floor(Math.sqrt(Math.max(0,level-1))/1.6);
+  const ownedTier=Math.max(equippedGearTier('club',savedProgress.equipped),
+    equippedGearTier('ball',savedProgress.equippedBall));
+  return 1-Math.min(.06,Math.max(0,expectedTier-ownedTier)*.004);
+}
 function clubPhysicsProfile(id){
   const generated=/^club-t(\d+)-([abc])$/.exec(id||'');
   const item=generated?window.GearProgression?.club(Number(generated[1]),'abc'.indexOf(generated[2])):null;
@@ -1455,6 +1481,8 @@ function windmillContact(feature,timeSeconds,before){
     if(!shot.tunnelAwards.has(feature.id)){
       shot.tunnelAwards.add(feature.id);
       shot.tunnelBonus+=WINDMILL_TUNNEL_XP;
+      const boost=Math.min(1.2,Math.max(.65,Math.hypot(shot.velocity.x,shot.velocity.z)*.12));
+      shot.velocity.x+=loc.dir.x*boost;shot.velocity.z+=loc.dir.z*boost;
       contactEvent('tunnel',x,z,`WINDMILL TUNNEL +${WINDMILL_TUNNEL_XP} XP`,'✦');
     }
   }
@@ -1491,7 +1519,7 @@ function windmillContact(feature,timeSeconds,before){
     contactEvent('blade',ball.x,ball.z,'WINDMILL WHACK!','✳');break;
   }
 }
-function spawnMole(){
+function spawnMole(showMole=true){
   const toCup=cupDirection(),v=shot.velocity,speed=Math.hypot(v.x,v.z);
   const incoming=speed>.18?{x:v.x/speed,z:v.z/speed}:{x:-toCup.x,z:-toCup.z};
   let nx=toCup.x-incoming.x,nz=toCup.z-incoming.z,n=Math.hypot(nx,nz);
@@ -1506,19 +1534,24 @@ function spawnMole(){
   const predictedY=ball.y+v.y*contactTime-3.9*contactTime*contactTime;
   const teeMargin=lane.t>0||Math.hypot(x-START.x,z-START.z)<=3.6;
   const cupMargin=lane.t<1||Math.hypot(x-CUP.x,z-CUP.z)<=2;
-  const canReach=teeMargin&&cupMargin&&Math.abs(lane.across)<=width+.45&&
-    predictedY<=layout.heightAt(x,z)+.66;
+  const clearOfFeatures=layout.features.every(feature=>
+    Math.hypot(x-feature.x,z-feature.z)>MOLE_FEATURE_CLEARANCE);
+  const backstop=backstopGeometry();
+  const clearOfBackstop=Math.hypot(x-backstop.x,z-backstop.z)>1.2;
+  const physicallyReachable=teeMargin&&cupMargin&&
+    Math.abs(lane.across)<=width+.45&&predictedY<=layout.heightAt(x,z)+.66;
+  const safeToShow=showMole&&Math.abs(lane.across)<=width-MOLE_RAIL_CLEARANCE&&
+    clearOfFeatures&&clearOfBackstop;
   shot.lastMole=shot.elapsed;
-  if(!canReach){
-    // The gust is visible in the world/HUD, and changes velocity gradually.
-    // It can guide a wildly off-course or airborne ball back to a place where
-    // a real mound could meet it on a later pass.
+  if(!physicallyReachable){
     shot.gustAt=shot.elapsed;shot.lastGust=shot.elapsed;shot.gustStrength=4.8;
     contactEvent('wind',ball.x,ball.z,'CROSSWIND RESCUE','〰');
     return false;
   }
-  shot.mole={x,z,normalX:nx,normalZ:nz,startedAt:shot.elapsed,contactAt:null,until:shot.elapsed+1.25,active:true};
-  return true;
+  shot.mole={x,z,normalX:nx,normalZ:nz,startedAt:shot.elapsed,contactAt:null,
+    until:shot.elapsed+1.25,visualUntil:shot.elapsed+(safeToShow?MOLE_VISIBLE_SECONDS:1.25),
+    active:true,hidden:!safeToShow};
+  return safeToShow;
 }
 function moleContact(){
   const m=shot.mole;if(!m||!m.active)return;
@@ -1533,7 +1566,8 @@ function moleContact(){
   if(into<0){shot.velocity.x-=(1+shot.ballProfile.bumperRestitution)*into*nx;shot.velocity.z-=(1+shot.ballProfile.bumperRestitution)*into*nz;}
   shot.velocity.x+=nx*2.4;shot.velocity.z+=nz*2.4;shot.velocity.y=Math.max(shot.velocity.y,.6);
   m.contactAt=shot.elapsed;m.until=shot.elapsed+.7;
-  contactEvent('mole',m.x,m.z,'MOLE SAVE!','✳');
+  m.visualUntil=shot.elapsed+(m.hidden?.7:MOLE_AFTER_CONTACT_SECONDS);
+  contactEvent(m.hidden?'wind':'mole',m.x,m.z,m.hidden?'CROSSWIND RESCUE':'MOLE SAVE!',m.hidden?'〰':'✳');
 }
 function stepPhysics(dt){
   if(!shot||phase!=='running')return;
@@ -1565,6 +1599,20 @@ function stepPhysics(dt){
   // Side spin is set by the player's initial aim, then decays as the ball rolls.
   const spin=shot.spinSign*shot.ballProfile.spinRate*shot.clubProfile.spinMultiplier*Math.max(0,1-shot.elapsed/4);
   ax+=-v.z*spin;az+=v.x*spin;
+  // A weak cross-course pull helps near misses find the near tunnel mouth.
+  // It fades before the ball reaches the opening and cannot reverse a shot.
+  for(const raw of layout.features){
+    if(raw.kind!=='windmill')continue;
+    const feature=movingFeature(raw,shot.start/1000+shot.elapsed);
+    const loc=localCoordinates(feature,ball.x,ball.z);
+    const forward=v.x*loc.dir.x+v.z*loc.dir.z;
+    if(loc.along>=-1.9&&loc.along<-.55&&Math.abs(loc.across)<.68&&forward>.5&&
+      ball.y<layout.heightAt(feature.x,feature.z)+.55){
+      const fade=Math.min(1,(loc.along+1.9)/.45,( -.55-loc.along)/.35);
+      const pull=-loc.across*.85*Math.max(0,fade);
+      ax+=loc.normal.x*pull;az+=loc.normal.z*pull;
+    }
+  }
   const headingToCup=(v.x*toCup.x+v.z*toCup.z)/(speed||1);
   if(dist>2.8&&shot.elapsed-shot.lastGust>3.1&&
      ((shot.power<24&&shot.elapsed>.45)||(shot.elapsed>1.1&&headingToCup<.3)||(shot.elapsed>2.2&&speed<1.3))){
@@ -1583,7 +1631,11 @@ function stepPhysics(dt){
      (shot.elapsed>.15&&speed>6&&headingToCup<.3)||
      (shot.elapsed>.65&&(offLane||behindTee))||(shot.elapsed>1.1&&headingToCup<-.05)||
      (shot.elapsed>2.4&&speed<1.05));
-  if(needsMole&&(!shot.mole||!shot.mole.active))spawnMole();
+  if(needsMole&&(!shot.mole||!shot.mole.active)){
+    const healthySlowRoll=shot.elapsed>2.4&&speed<1.05&&headingToCup>=.75&&
+      !offLane&&!behindTee;
+    spawnMole(!healthySlowRoll);
+  }
   v.x+=ax*dt;v.z+=az*dt;
   // Inside the painted cup contours, the shallow bowl gently turns the ball.
   // The turn rotates velocity only: it cannot add speed or alter the launch line.
@@ -1638,7 +1690,7 @@ function startShot(p,vector){
   // A full pull has a distinct burst, while short taps keep fine control.
   // Even the strongest gear stays below one ball radius of travel per 120 Hz
   // physics step, so narrow contacts remain detectable.
-  const speed=(.3+pull*6.6+3.5*pull**3)*ballProfile.launchMultiplier*clubProfile.speedMultiplier;
+  const speed=(.3+pull*6.6+3.5*pull**3)*ballProfile.launchMultiplier*clubProfile.speedMultiplier*gearFreshnessMultiplier();
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
     windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),tunnelEntries:new Set(),tunnelAwards:new Set(),tunnelBonus:0,sinking:false,lastTrail:0,lastCue:''};

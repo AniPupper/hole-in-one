@@ -101,6 +101,20 @@ function checkShop() {
   const catalog = checkCatalog(shop);
   assert.equal(shop.run('progress.xp'), 0, 'new players should start with no XP');
   shop.run('progress.xp = 2000; saveProgress()');
+  shop.run("openGearDetail('club', 'meteor')");
+  assert.equal(shop.run("document.getElementById('detail-panel').hidden"), false);
+  assert.ok(shop.run("document.getElementById('detail-compare').innerHTML.includes('Equipped')"),
+    'gear detail should offer equipped gear comparison');
+  assert.ok(shop.run("document.getElementById('detail-chart').innerHTML.includes('candidate-bar')"),
+    'gear detail should show visual stat differences');
+  assert.equal(shop.run("document.getElementById('detail-add').disabled"), false);
+  shop.elements.get('detail-add').handlers.click();
+  assert.equal(shop.run("document.getElementById('claim-modal').hidden"), false,
+    'adding from detail should open the right cart');
+  assert.equal(shop.run("document.querySelector('.app-shell').inert"), false,
+    'cart should leave the shop browsable');
+  assert.equal(shop.run("document.getElementById('cart-ball-item').hidden"), true,
+    'cart should only show selected items');
   shop.run("openClaimCart('meteor')");
   assert.equal(shop.run('cartBallId'), null, 'a club click should not add a ball silently');
   assert.ok(shop.run("document.getElementById('pair-suggestion').innerHTML.includes('Add Sunburst')"), 'affordable pairing should be suggested');

@@ -231,7 +231,8 @@ const tunnel = vm.runInContext(`(() => {
       windmillContact(feature,0,previous);
       previous=current;
     }
-    return{bonus:shot.tunnelBonus,awards:shot.tunnelAwards.size,entry:shot.tunnelEntries.size};
+    return{bonus:shot.tunnelBonus,awards:shot.tunnelAwards.size,entry:shot.tunnelEntries.size,
+      forward:shot.velocity.x*dir.x+shot.velocity.z*dir.z};
   }
   const pass=enterAndExit(0,BALL_RADIUS);
   const side=enterAndExit(.24,BALL_RADIUS);
@@ -242,7 +243,25 @@ assert.equal(tunnel.pass.bonus,75,'complete tunnel pass missed its XP bonus');
 assert.equal(tunnel.pass.awards,1,'tunnel award was not tracked once');
 assert.equal(tunnel.side.bonus,0,'passing beside the tunnel earned XP');
 assert.equal(tunnel.over.bonus,0,'passing above the tunnel earned XP');
-console.log('Windmill tunnel OK: full pass +75 XP, side and aerial passes +0 XP');
+assert.ok(tunnel.pass.forward>tunnel.side.forward+.5,'full tunnel pass missed its speed boost');
+console.log('Windmill tunnel OK: full pass +75 XP and speed boost; side and aerial passes +0 XP');
+
+const freshness = vm.runInContext(`(() => {
+  function launch(level,club,ballId){
+    setLayout(level);courseState={level,completed:false};
+    savedProgress.equipped=club;savedProgress.equippedBall=ballId;
+    phase='ready';ball={...START};shot=null;updateCamera(1000);
+    startShot(75,{x:160,y:0});
+    return{pace:gearFreshnessMultiplier(),speed:Math.hypot(shot.velocity.x,shot.velocity.z)};
+  }
+  return{early:launch(1,'rookie','classic'),late:launch(160,'rookie','classic'),
+    refreshed:launch(160,'club-t20-a','ball-t20-a')};
+})()`, context);
+assert.equal(freshness.early.pace,1);
+assert.ok(freshness.late.pace>=.94&&freshness.late.pace<1,'old gear should slow only a little');
+assert.ok(freshness.late.speed<freshness.early.speed,'old gear did not lose launch pace');
+assert.equal(freshness.refreshed.pace,1,'new gear should refresh launch pace');
+console.log(`Gear freshness OK: old loadout ${Math.round(freshness.late.pace*100)}% pace by hole 160; current loadout 100%`);
 
 const playableTunnel = vm.runInContext(`(() => {
   for(const level of [4,6]){
@@ -269,7 +288,7 @@ const cameraAndMole = vm.runInContext(`(() => {
   phase='ready';ball={...START};shot=null;updateCamera(1000);
   startShot(75,{x:160,y:0});
   for(let i=0;i<120&&phase==='running';i++)stepPhysics(1/120);
-  const earlyMole=!!shot?.mole?.active;
+  const earlyMole=!!shot?.mole?.active&&!shot.mole.hidden;
   const p=layout.pathPoint(.4,0);
   ball={x:p.x,y:layout.heightAt(p.x,p.z)+BALL_RADIUS,z:p.z};
   shot.elapsed=1.5;updateCamera(1000);
@@ -282,7 +301,7 @@ const cameraAndMole = vm.runInContext(`(() => {
   shot.elapsed=5;shot.velocity={x:d.x*3,y:0,z:d.z*3};
   shot.lastGust=5;shot.gustAt=null;shot.lastMole=-10;shot.mole=null;
   for(let i=0;i<35&&phase==='running';i++)stepPhysics(1/120);
-  const lateMole=!!shot?.mole?.active;
+  const lateMole=!!shot?.mole?.active&&!shot.mole.hidden;
   ball={x:p.x,y:layout.heightAt(p.x,p.z)+BALL_RADIUS,z:p.z};
   shot.elapsed=1.5;
   shot.velocity={x:-d.x*3,y:0,z:-d.z*3};
@@ -314,3 +333,39 @@ assert.ok(preview.traveled>1,'preview controls did not move along the hole');
 assert.ok(preview.returned<1e-9,'preview did not return to the tee camera');
 assert.equal(preview.phase,'ready','preview started a shot');
 console.log('Course preview OK: opens, moves along the hole, and returns without swinging');
+
+const molePlacement = vm.runInContext(`(() => {
+  setLayout(1);courseState={level:1,completed:false};phase='ready';ball={...START};shot=null;updateCamera(1000);
+  startShot(60,{x:160,y:0});
+  const p=layout.pathPoint(.45,0),dir=pathTangent(.45);
+  ball={x:p.x,y:layout.heightAt(p.x,p.z)+BALL_RADIUS,z:p.z};
+  shot.elapsed=2;shot.velocity={x:-dir.x*3,y:0,z:-dir.z*3};
+  if(!spawnMole())throw Error('valid in-lane mole did not spawn');
+  const m=shot.mole,lane=nearestPath(m.x,m.z),width=layout.corridorHalfWidth(lane.t);
+  const initialStay=m.visualUntil-shot.elapsed;
+  shot.elapsed+=.1;ball={x:m.x,y:layout.heightAt(m.x,m.z)+BALL_RADIUS,z:m.z};
+  shot.velocity={x:-m.normalX*3,y:0,z:-m.normalZ*3};moleContact();
+  const afterHitStay=m.visualUntil-shot.elapsed;
+  setLayout(4);courseState={level:4,completed:false};phase='ready';ball={...START};shot=null;updateCamera(1000);
+  startShot(60,{x:160,y:0});
+  const f=layout.features.find(item=>item.kind==='windmill'),heading=pathTangent(f.t);
+  ball={x:f.x-heading.x*.3,y:layout.heightAt(f.x,f.z)+BALL_RADIUS,z:f.z-heading.z*.3};
+  shot.elapsed=2;shot.velocity={x:heading.x*3,y:0,z:heading.z*3};
+  const nearFeatureSpawned=spawnMole();
+  const nearFeatureVisible=!!shot.mole&&!shot.mole.hidden;
+  setLayout(1);courseState={level:1,completed:false};phase='ready';ball={...START};shot=null;updateCamera(1000);
+  startShot(60,{x:160,y:0});
+  const t=.45,edge=layout.corridorHalfWidth(t),nearRail=layout.pathPoint(t,edge-.05),forward=pathTangent(t);
+  ball={x:nearRail.x,y:layout.heightAt(nearRail.x,nearRail.z)+BALL_RADIUS,z:nearRail.z};
+  shot.elapsed=2;shot.velocity={x:forward.x*3,y:0,z:forward.z*3};
+  spawnMole();const nearWallVisible=!!shot.mole&&!shot.mole.hidden;
+  return{railMargin:width-Math.abs(lane.across),initialStay,afterHitStay,
+    nearFeatureSpawned,nearFeatureVisible,nearWallVisible};
+})()`, context);
+assert.ok(molePlacement.railMargin>=.65,'mole was too close to the course wall');
+assert.ok(molePlacement.initialStay>=2,'mole did not remain visible longer before contact');
+assert.ok(molePlacement.afterHitStay>=1.2,'mole disappeared too quickly after contact');
+assert.equal(molePlacement.nearFeatureSpawned,false,'mole appeared beside another obstacle');
+assert.equal(molePlacement.nearFeatureVisible,false,'mole was visible beside another obstacle');
+assert.equal(molePlacement.nearWallVisible,false,'mole was visible beside a course wall');
+console.log('Mole placement OK: clear of walls and obstacles, longer visible window');

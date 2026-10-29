@@ -65,10 +65,17 @@
               <h1 id="hero-title">The <em>Pro Shop.</em></h1>
               <p id="hero-description">Pick a club + ball. Play a hole.</p>
             </div>
-            <div class="xp-wallet" aria-live="polite">
-              <span class="wallet-spark" aria-hidden="true">✳</span>
-              <div><div class="wallet-label">XP BALANCE</div><div class="wallet-value" id="wallet-xp">0 <span>XP</span></div></div>
-              <span class="wallet-arrow" aria-hidden="true">↗</span>
+            <div class="hero-side">
+              <div class="xp-wallet" aria-live="polite">
+                <span class="wallet-spark" aria-hidden="true">✳</span>
+                <div><div class="wallet-label">XP BALANCE</div><div class="wallet-value" id="wallet-xp">0 <span>XP</span></div></div>
+                <span class="wallet-arrow" aria-hidden="true">↗</span>
+              </div>
+              <button class="equipped-summary" id="gear-summary" type="button" aria-label="View currently equipped gear in My Gear">
+                <span class="equipped-summary-kicker">EQUIPPED · MY GEAR ↗</span>
+                <strong id="hero-equipped-club">The Rookie</strong>
+                <span id="hero-equipped-ball">Classic White</span>
+              </button>
             </div>
           </section>
 
@@ -94,7 +101,14 @@
             <div class="ball-grid" id="ball-grid"></div>
           </section>
 
-          <section class="selection-bar" aria-live="polite" aria-label="Cart summary">
+          <section class="future-section" aria-labelledby="future-heading">
+            <div class="section-index">UP NEXT</div>
+            <h2 id="future-heading">More gear on the horizon.</h2>
+            <p>Upcoming drops stay a mystery until you reach them.</p>
+            <div class="future-grid" id="future-grid"></div>
+          </section>
+
+          <section class="selection-bar" aria-live="polite" aria-label="Cart summary" hidden>
             <div class="selection-bar-icon" aria-hidden="true">▣</div>
             <div class="selection-info"><span class="selection-caption">YOUR CART</span><strong id="selected-name">Your cart is empty</strong><strong class="selection-price" id="selection-price">0 XP</strong></div>
             <button class="claim-button" id="claim-button" type="button"><span>View cart</span><span aria-hidden="true">↗</span></button>
@@ -107,7 +121,7 @@
     <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
 
     <div class="modal-backdrop" id="claim-modal" hidden>
-      <section class="claim-dialog" role="dialog" aria-modal="true" aria-labelledby="claim-title">
+      <section class="claim-dialog" role="dialog" aria-modal="false" aria-labelledby="claim-title">
         <div class="cart-golf-cart" aria-hidden="true">
           <svg viewBox="0 0 144 92" focusable="false">
             <ellipse cx="75" cy="82" rx="59" ry="5" fill="#dbe5d2"/>
@@ -125,15 +139,15 @@
         <div class="claim-step" id="claim-step">YOUR CART</div>
         <h2 id="claim-title">Your cart.</h2>
         <p class="claim-intro" id="claim-intro">Add a club, a ball, or both. Review your XP before buying.</p>
-        <div class="claim-showcase" id="claim-showcase">
+          <div class="claim-showcase" id="claim-showcase">
           <div class="claim-rays" aria-hidden="true"></div>
           <div class="claim-glow" aria-hidden="true"></div>
           <div class="claim-art" id="claim-art" aria-hidden="true"></div>
           <span class="claim-star star-one" aria-hidden="true">✦</span><span class="claim-star star-two" aria-hidden="true">✳</span>
         </div>
         <div class="cart-items">
-          <div class="cart-item"><div class="cart-item-heading"><span>01 / CLUB</span><strong id="claim-cost">—</strong></div><div class="cart-preview" id="cart-club-preview"></div><div class="claim-cart-choices" id="claim-cart-choices" aria-label="Choose a club for your cart"></div></div>
-          <div class="cart-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">—</strong></div><div class="cart-preview" id="cart-ball-preview"></div><div class="claim-ball-choices" id="claim-ball-choices" aria-label="Choose a ball for your cart"></div></div>
+          <div class="cart-item" id="cart-club-item"><div class="cart-item-heading"><span>01 / CLUB</span><strong id="claim-cost">—</strong></div><div class="cart-preview" id="cart-club-preview"></div><div class="claim-cart-choices" id="claim-cart-choices" hidden></div></div>
+          <div class="cart-item" id="cart-ball-item"><div class="cart-item-heading"><span>02 / BALL</span><strong id="claim-ball-cost">—</strong></div><div class="cart-preview" id="cart-ball-preview"></div><div class="claim-ball-choices" id="claim-ball-choices" hidden></div></div>
         </div>
         <div class="pair-suggestion" id="pair-suggestion" hidden></div>
         <div class="claim-receipt" aria-label="Unlock summary">
@@ -149,6 +163,19 @@
         <div class="claim-announcement" id="claim-announcement" role="status" aria-live="polite"></div>
       </section>
     </div>
+    <aside class="detail-panel" id="detail-panel" hidden role="dialog" aria-modal="false" aria-labelledby="detail-title">
+      <div class="detail-head"><span>GEAR DETAILS</span><button id="detail-close" type="button" aria-label="Close gear details">×</button></div>
+      <div class="detail-art" id="detail-art" aria-hidden="true"></div>
+      <div class="detail-meta"><span id="detail-type"></span><span id="detail-rarity"></span></div>
+      <h2 id="detail-title">Gear details</h2>
+      <p id="detail-tag"></p>
+      <div class="detail-price" id="detail-price"></div>
+      <div class="detail-compare-head"><strong>Compare stats</strong><label for="detail-compare">Against</label></div>
+      <select id="detail-compare" aria-label="Choose gear to compare"></select>
+      <div class="detail-chart-legend"><span><i class="candidate-mark"></i> This item</span><span><i class="reference-mark"></i> Comparison</span></div>
+      <div class="detail-chart" id="detail-chart"></div>
+      <button class="detail-add" id="detail-add" type="button">Add to cart</button>
+    </aside>
     <div class="modal-backdrop" id="practice-modal" hidden>
       <section class="practice-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-title">
         <button class="modal-close" id="modal-close" type="button" aria-label="Close">×</button>
