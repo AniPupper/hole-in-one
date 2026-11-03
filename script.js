@@ -193,7 +193,7 @@ function render() {
   document.getElementById('meter-status').textContent = complete ? 'COMING SOON' : unlocked ? 'READY TO BUY' : 'KEEP SWINGING';
   document.getElementById('meter-fill').style.width = `${Math.min(100, progress.xp / tier.threshold * 100)}%`;
   document.getElementById('section-index').textContent = `TIER ${String(tierIndex + 1).padStart(2, '0')} · ${tierLabel(tierIndex)}`;
-  document.getElementById('club-heading').textContent = complete ? 'More clubs incoming.' : unlocked ? 'Pick your club.' : 'Coming up.';
+  document.getElementById('club-heading').textContent = complete ? 'More clubs incoming' : unlocked ? 'Pick your club' : 'Coming up';
   document.getElementById('section-description').textContent = complete ? 'The next drop is taking shape.' : unlocked ? 'One of three is yours.' : 'Keep sinking shots.';
   document.getElementById('selection-note-text').textContent = complete ? 'MORE TO COME' : 'CHOOSE ONE OF THREE';
 
@@ -219,7 +219,7 @@ function render() {
   if (ballsComplete) selectedBallId = progress.equippedBall;
   else if (!ballTier.choices.includes(selectedBallId)) selectedBallId = ballTier.choices[0];
   document.getElementById('ball-section-index').textContent = ballsComplete ? 'NEXT BALL DROP' : `BALL DROP ${String(ballTierIndex + 1).padStart(2, '0')} · ${tierLabel(ballTierIndex)}`;
-  document.getElementById('ball-heading').textContent = ballsComplete ? 'More balls incoming.' : ballsUnlocked ? 'Pick your ball.' : 'Next ball drop.';
+  document.getElementById('ball-heading').textContent = ballsComplete ? 'More balls incoming' : ballsUnlocked ? 'Pick your ball' : 'Next ball drop';
   document.getElementById('ball-section-description').innerHTML = ballsComplete ? 'The next drop is taking shape.' : ballsUnlocked ? 'One of three. Add it to your cart.' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> to buy.`;
   const ballGrid = document.getElementById('ball-grid');
   ballGrid.innerHTML = ballTier.choices.map((id) => {
@@ -381,7 +381,7 @@ function openClaimCart(clubId = null, ballId = null) {
   const dialog = document.querySelector('#claim-modal .claim-dialog');
   dialog.classList.remove('celebrating', 'revealed');
   document.getElementById('claim-close').setAttribute('aria-label', 'Close cart');
-  document.getElementById('claim-title').textContent = 'Your cart.';
+  document.getElementById('claim-title').textContent = 'Your cart';
   document.getElementById('claim-intro').textContent = 'Your selected gear, ready when you are.';
   const clubChoices = document.getElementById('claim-cart-choices');
   const ballChoices = document.getElementById('claim-ball-choices');
