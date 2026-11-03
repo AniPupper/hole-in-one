@@ -201,16 +201,16 @@ function render() {
   grid.innerHTML = tier.choices.map((id, index) => {
     const club = clubs[id];
     const selected = claimSelectedId === id;
-    return `<button class="club-card ${selected ? 'selected' : ''} ${unlocked && !complete ? 'available' : ''} ${!unlocked && !complete ? 'locked' : ''}" type="button" data-club="${id}" aria-label="View details for ${club.name}">
+    const canAdd = unlocked && !complete;
+    const addLabel = complete ? 'Already claimed' : canAdd ? 'Add to cart' : `${Math.max(0, tier.threshold - progress.xp).toLocaleString()} XP to unlock`;
+    return `<article class="club-card ${selected ? 'selected' : ''} ${canAdd ? 'available' : ''} ${!canAdd ? 'locked' : ''}">
       <div class="club-art ${club.art}" ${club.rank ? `style="--club-color:${club.color};--club-grip:${club.grip}"` : ''}><span class="price-badge" title="${tier.threshold.toLocaleString()} XP">${priceBadge(tier.threshold)}</span><span class="art-spark one">✦</span><span class="art-spark two">✳</span>${clubArtwork(club)}<span class="card-check">${selected ? '✓' : ''}</span></div>
       <div class="card-body"><div class="card-row"><span class="card-kicker">${club.type}</span><span class="rarity-badge">${rarityLabel(club, tierIndex)}</span></div><h3>${club.name}</h3><span class="card-tag">${club.tag}</span>
-        <div class="card-bottom"><span>${complete ? progress.owned.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART · VIEW DETAILS' : 'VIEW DETAILS + COMPARE'}</span><span class="card-arrow">↗</span></div>
-      </div></button>`;
+        <div class="gear-card-actions"><button type="button" class="gear-add" data-add-club="${id}" ${canAdd ? '' : 'disabled'}>${addLabel}</button><button type="button" class="gear-details" data-detail-club="${id}">View details <span aria-hidden="true">↗</span></button></div>
+      </div></article>`;
   }).join('');
-  grid.querySelectorAll('[data-club]').forEach((button) => button.addEventListener('click', () => {
-    selectedId = button.dataset.club;
-    openGearDetail('club', selectedId);
-  }));
+  grid.querySelectorAll('[data-add-club]').forEach((button) => button.addEventListener('click', () => openClaimCart(button.dataset.addClub)));
+  grid.querySelectorAll('[data-detail-club]').forEach((button) => button.addEventListener('click', () => openGearDetail('club', button.dataset.detailClub)));
 
   const ballTierIndex = currentBallTierIndex();
   const ballTier = ballTiers[ballTierIndex];
@@ -225,13 +225,12 @@ function render() {
   ballGrid.innerHTML = ballTier.choices.map((id) => {
     const item = balls[id];
     const selected = cartBallId === id;
-    const state = ballsComplete ? progress.ownedBalls.includes(id) ? 'IN YOUR BAG' : 'NOT CHOSEN' : selected ? 'IN CART' : ballsUnlocked ? 'ADD TO CART' : `<span class="xp-inline">${(ballTier.threshold - progress.xp).toLocaleString()} XP</span> SHORT`;
-    return `<button class="ball-card ${selected ? 'selected' : ''} ${ballsUnlocked ? 'available' : 'locked'}" type="button" data-ball="${id}" aria-label="View details for ${item.name}"><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="rarity-badge">${rarityLabel(item, ballTierIndex)}</span></div><h3>${item.name}</h3><span class="card-tag">${item.tag}</span><div class="card-bottom"><span>${selected ? 'IN CART · VIEW DETAILS' : 'VIEW DETAILS + COMPARE'}</span><span class="card-arrow">↗</span></div></div></button>`;
+    const canAdd = ballsUnlocked && !ballsComplete;
+    const addLabel = ballsComplete ? 'Already claimed' : canAdd ? 'Add to cart' : `${Math.max(0, ballTier.threshold - progress.xp).toLocaleString()} XP to unlock`;
+    return `<article class="ball-card ${selected ? 'selected' : ''} ${canAdd ? 'available' : 'locked'}"><div class="ball-art ${item.rank ? 'generated' : ''}" ${item.rank ? `style="--ball-color:${item.color};--ball-accent:${item.accent}"` : ''}><span class="price-badge" title="${ballTier.threshold.toLocaleString()} XP">${priceBadge(ballTier.threshold)}</span>${window.BallUpgrades.artwork(id)}<span class="card-check">${selected ? '✓' : ''}</span></div><div class="ball-card-body"><div class="card-row"><span class="card-kicker">${item.type}</span><span class="rarity-badge">${rarityLabel(item, ballTierIndex)}</span></div><h3>${item.name}</h3><span class="card-tag">${item.tag}</span><div class="gear-card-actions"><button type="button" class="gear-add" data-add-ball="${id}" ${canAdd ? '' : 'disabled'}>${addLabel}</button><button type="button" class="gear-details" data-detail-ball="${id}">View details <span aria-hidden="true">↗</span></button></div></div></article>`;
   }).join('');
-  ballGrid.querySelectorAll('[data-ball]').forEach((button) => button.addEventListener('click', () => {
-    selectedBallId = button.dataset.ball;
-    openGearDetail('ball', selectedBallId);
-  }));
+  ballGrid.querySelectorAll('[data-add-ball]').forEach((button) => button.addEventListener('click', () => openClaimCart(null, button.dataset.addBall)));
+  ballGrid.querySelectorAll('[data-detail-ball]').forEach((button) => button.addEventListener('click', () => openGearDetail('ball', button.dataset.detailBall)));
   renderFuturePreviews();
   renderCartSummary();
 }
@@ -245,7 +244,7 @@ function renderFuturePreviews() {
       const next = index + offset;
       future.push(`<div class="future-card" aria-label="Locked ${kind.toLowerCase()} drop at tier ${next + 1}">
         <span class="future-symbol" aria-hidden="true">${kind === 'CLUB' ? '✦' : '●'}</span>
-        <div><span>${kind} · TIER ${String(next + 1).padStart(2, '0')}</span><strong>Locked drop</strong><small>${priceBadge(collection[next].threshold)} to unlock</small></div>
+        <div><span>${kind} DROP</span><strong>Locked drop</strong><small>Keep playing to reveal</small></div>
       </div>`);
     }
   }
@@ -267,12 +266,20 @@ function renderDetailComparison() {
   const { kind, id } = detailSelection;
   const catalog = kind === 'club' ? clubs : balls;
   const item = catalog[id];
-  const reference = catalog[document.getElementById('detail-compare').value] || catalog[kind === 'club' ? progress.equipped : progress.equippedBall];
-  const labels = kind === 'club' ? ['DISTANCE', 'HEIGHT', 'TRICKS'] : ['BOUNCE', 'SPIN', 'ROLL'];
+  const referenceId = document.getElementById('detail-compare').value;
+  const reference = catalog[referenceId] || catalog[kind === 'club' ? progress.equipped : progress.equippedBall];
+  const labels = kind === 'club' ? ['↗', '↥', '✦'] : ['⤴', '⟳', '→'];
+  const labelNames = kind === 'club' ? ['Distance', 'Height', 'Tricks'] : ['Bounce', 'Spin', 'Roll'];
   const scale = Math.max(10, ...item.stats, ...reference.stats);
+  const referenceArt = kind === 'club' ? clubArtwork(reference) : window.BallUpgrades.artwork(referenceId);
+  const candidateArt = kind === 'club' ? clubArtwork(item) : window.BallUpgrades.artwork(id);
+  document.getElementById('detail-visual-compare').innerHTML = `
+    <div class="compare-gear candidate"><div class="compare-art ${kind === 'club' ? `club-art ${item.art || ''}` : `ball-art ${item.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${item.color};--club-grip:${item.grip}` : `--ball-color:${item.color};--ball-accent:${item.accent}`}" aria-hidden="true">${candidateArt}</div><span>${item.name}</span></div>
+    <span class="compare-versus" aria-hidden="true">VS</span>
+    <div class="compare-gear reference"><div class="compare-art ${kind === 'club' ? `club-art ${reference.art || ''}` : `ball-art ${reference.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${reference.color};--club-grip:${reference.grip}` : `--ball-color:${reference.color};--ball-accent:${reference.accent}`}" aria-hidden="true">${referenceArt}</div><span>${reference.name}</span></div>`;
   document.getElementById('detail-chart').innerHTML = item.stats.map((value, index) => {
     const other = reference.stats[index], delta = value - other;
-    return `<div class="detail-chart-row"><span>${labels[index]}</span>
+    return `<div class="detail-chart-row"><span title="${labelNames[index]}" aria-label="${labelNames[index]}">${labels[index]}</span>
       <div class="detail-bars"><i class="candidate-bar" style="width:${Math.max(3, value / scale * 100)}%"></i><i class="reference-bar" style="width:${Math.max(3, other / scale * 100)}%"></i></div>
       <strong class="${delta < 0 ? 'loss' : ''}">${value} <small>${delta > 0 ? '+' : delta < 0 ? '−' : '='}${Math.abs(delta)}</small></strong></div>`;
   }).join('');
@@ -294,7 +301,6 @@ function openGearDetail(kind, id) {
   document.getElementById('detail-type').textContent = item.type;
   document.getElementById('detail-rarity').textContent = rarityLabel(item, tierIndex);
   document.getElementById('detail-title').textContent = item.name;
-  document.getElementById('detail-tag').textContent = item.tag;
   document.getElementById('detail-price').textContent = `${tier.threshold.toLocaleString()} XP`;
   const equippedId = kind === 'club' ? progress.equipped : progress.equippedBall;
   const options = [{ id: equippedId, label: `Equipped · ${catalog[equippedId].name}` }];

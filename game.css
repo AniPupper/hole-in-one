@@ -32,9 +32,9 @@
 .xp-pill strong{font-size:32px}
 .eyebrow,.hole-number,.course-intro p,.hole-progress>span{font-size:13px}
 .course-intro p{color:#315a43;font-weight:600;line-height:1.5}
-.stat-kicker,.streak-card span:last-child,.shot-label,.shot-bottom,.course-badge,.event-callout div span{font-size:12px;letter-spacing:1px}
+.stat-kicker,.streak-card span:last-child,.shot-label,.shot-bottom,.course-badge,.event-callout div span{font-size:13px;letter-spacing:1px}
 .stat-card strong{font-size:17px}
-.ball-name{display:block;margin-top:4px;font:700 12px/1.2 'DM Sans',sans-serif;color:#b45c2f}
+.ball-name{display:block;margin-top:4px;font:700 13px/1.2 'DM Sans',sans-serif;color:#b45c2f}
 .shot-top strong{font-size:17px}
 .shot-bottom{color:#466f56}
 .event-callout{min-width:260px;background:#173f32f2;border:1px solid #f8d78b;box-shadow:0 7px 0 #092d23,0 18px 35px #16432c55}
@@ -46,13 +46,13 @@
 }
 @media(prefers-reduced-motion:reduce){.event-callout.popping{animation:none}}
 .event-callout strong{font-size:18px}
-.celebration-kicker,.reward-line span,.lifetime-line span,.celebration-actions a{font-size:12px}
+.celebration-kicker,.reward-line span,.lifetime-line span,.celebration-actions a{font-size:13px}
 .reward-line strong{font-size:28px}.lifetime-line strong{font-size:21px}
 .tunnel-reward{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:8px;padding:10px 12px;border-radius:9px;background:#e7f0dc;color:#2e6545;font-size:13px;font-weight:900;letter-spacing:.4px}
 .tunnel-reward[hidden]{display:none}
 .tunnel-reward strong{white-space:nowrap;color:#2e6545;font:900 17px Outfit,sans-serif}
 .shop-button{font-size:14px}
-.celebration-actions button{font-size:13px}
+.celebration-actions button{font-size:13px}.celebration-actions.shop-ready{gap:10px}.celebration-actions.shop-ready button,.celebration-actions.shop-ready a{flex:1;min-height:51px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;padding:15px 14px;font-weight:900;letter-spacing:1px}.celebration-actions.shop-ready a{background:#b95329;color:#fff9ec;box-shadow:0 5px 0 #7f3d25}.celebration-actions.shop-ready a:hover{background:#d46b36}.celebration-actions.shop-ready a span{font-size:16px}
 @media(max-width:1000px){.game-stats{width:220px}.course-intro{width:240px}}
 @media(max-width:680px){
   .game-shell{min-height:550px}
@@ -68,10 +68,10 @@
   .stat-card{min-height:51px;padding:7px}
   .stat-kicker{display:none}
   .stat-card strong{font-size:13px;white-space:normal;line-height:1.15}
-  .ball-name{font-size:12px;margin-top:2px}
+  .ball-name{font-size:13px;margin-top:2px}
   .streak-card strong{font-size:19px}
   .streak-card span:last-child{font-size:12px;letter-spacing:.1px}
-  .shot-label{font-size:12px}
+  .shot-label{font-size:13px}
   .shot-top strong{font-size:15px}
   .shot-bottom{justify-content:center;font-size:12px;letter-spacing:.15px}
   .shot-bottom span:first-child{display:none}

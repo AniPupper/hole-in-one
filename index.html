@@ -164,15 +164,14 @@
       </section>
     </div>
     <aside class="detail-panel" id="detail-panel" hidden role="dialog" aria-modal="false" aria-labelledby="detail-title">
-      <div class="detail-head"><span>GEAR DETAILS</span><button id="detail-close" type="button" aria-label="Close gear details">×</button></div>
+      <div class="detail-head"><span aria-label="Gear details">✦</span><button id="detail-close" type="button" aria-label="Close gear details">×</button></div>
       <div class="detail-art" id="detail-art" aria-hidden="true"></div>
       <div class="detail-meta"><span id="detail-type"></span><span id="detail-rarity"></span></div>
       <h2 id="detail-title">Gear details</h2>
-      <p id="detail-tag"></p>
       <div class="detail-price" id="detail-price"></div>
-      <div class="detail-compare-head"><strong>Compare stats</strong><label for="detail-compare">Against</label></div>
+      <div class="detail-compare-head"><strong aria-label="Comparison">VS</strong><label for="detail-compare">Compare against</label></div>
       <select id="detail-compare" aria-label="Choose gear to compare"></select>
-      <div class="detail-chart-legend"><span><i class="candidate-mark"></i> This item</span><span><i class="reference-mark"></i> Comparison</span></div>
+      <div class="detail-visual-compare" id="detail-visual-compare" aria-label="Gear comparison"></div>
       <div class="detail-chart" id="detail-chart"></div>
       <button class="detail-add" id="detail-add" type="button">Add to cart</button>
     </aside>

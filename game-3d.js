@@ -24,7 +24,8 @@
       float hemisphere=0.43+0.12*normal.y;
       vec3 viewDirection=normalize(uCamera-vPosition);
       float sparkle=pow(max(dot(normal,normalize(light+viewDirection)),0.0),mix(12.0,58.0,vShine))*vShine*0.55;
-      vec3 color=vColor*(hemisphere+shade*0.58)+vec3(1.0,0.91,0.72)*sparkle;
+      float paleSurface=smoothstep(2.72,2.94,vColor.r+vColor.g+vColor.b);
+      vec3 color=vColor*(hemisphere+shade*0.58)+vec3(0.16)*paleSurface+vec3(1.0,0.91,0.72)*sparkle;
       outputColor=vec4(pow(min(color,vec3(1.0)),vec3(0.94)),1.0);
     }`;
   const compile=(kind,source)=>{const shader=gl.createShader(kind);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader));return shader;};
@@ -826,6 +827,8 @@
     return 'glide';
   }
   function ballShellColor(id,style){
+    // Keep the starter ball visibly white under the course's directional shade.
+    if(id==='classic')return '#ffffff';
     if(style?.color)return colorValue(style.color);
     if(curatedBallColors[id])return curatedBallColors[id];
     const match=/^ball-t(\d+)-([abc])$/.exec(id||'');

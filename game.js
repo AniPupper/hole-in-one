@@ -155,7 +155,11 @@ function readProgress() {
 function readCourse() {
   try {
     const data = JSON.parse(localStorage.getItem(COURSE_KEY));
-    if (data && Number.isInteger(data.level) && data.level > 0) return { level: data.level, completed: !!data.completed };
+    if (data && Number.isInteger(data.level) && data.level > 0) return {
+      level: data.level, completed: !!data.completed,
+      lastReward: Math.max(0, Number(data.lastReward) || 0),
+      lastTunnelBonus: Math.max(0, Number(data.lastTunnelBonus) || 0)
+    };
   } catch (_) { /* Use the first course. */ }
   return { level: 1, completed: false };
 }
@@ -214,7 +218,7 @@ if(window.Game3D?.create){
 }
 updateHud();
 window.addEventListener('pageshow',()=>{savedProgress=readProgress();updateHud();});
-if (courseState.completed) showCelebration(false);
+if (courseState.completed) showCelebration(false, courseState.lastReward || estimatedCourseReward(), courseState.lastTunnelBonus || 0);
 
 // A low camera sits just behind the ball, then eases forward to follow its flight.
 const courseVector = { x: CUP.x - START.x, z: CUP.z - START.z };
@@ -1772,17 +1776,27 @@ function finishShot(){
   const tunnelBonus=shot.tunnelBonus||0,reward=base+powerBonus+tunnelBonus;
   savedProgress=readProgress();savedProgress.xp=Math.max(0,Number(savedProgress.xp)||0)+reward;
   savedProgress.holeCount=Math.max(0,Number(savedProgress.holeCount)||0)+1;
-  courseState.completed=true;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);
+  courseState.completed=true;courseState.lastReward=reward;courseState.lastTunnelBonus=tunnelBonus;save(PROGRESS_KEY,savedProgress);save(COURSE_KEY,courseState);
   updateHud();const p=project(CUP.x,.3,CUP.z);sparkleBurst(p.x,p.y,40);
   showCelebration(true,reward,tunnelBonus);shot=null;
 }
 function showCelebration(animate,reward,tunnelBonus=0){
   $('celebration-total').textContent=`${Math.round(savedProgress.xp).toLocaleString()} XP`;
-  $('reward-xp').textContent=reward?`+${reward.toLocaleString()} XP`:'PERFECT SHOT';
+  $('reward-xp').textContent=`+${Math.max(0, Math.round(reward || estimatedCourseReward())).toLocaleString()} XP`;
   $('tunnel-reward').hidden=!tunnelBonus;
   $('tunnel-reward-xp').textContent=`+${tunnelBonus.toLocaleString()} XP`;
   $('celebration-story').textContent=themeLevel()===1?'That ball knew exactly where it was going.':themeLevel()>=5?'What a ride. And somehow, exactly as planned.':'A little chaos. A lot of perfect aim.';
+  $('celebration-actions').classList.toggle('shop-ready', hasAffordableGear());
   $('celebration').hidden=false;$('shot-dock').classList.add('hidden');if(animate)burstConfetti();
+}
+function estimatedCourseReward(){
+  return 140+35*courseState.level+30*layout.features.length+Math.round(8*layout.span);
+}
+function hasAffordableGear(){
+  const clubThresholds=[1000,2600,5200,9000,15000,24000];
+  const clubReady=clubThresholds.some((threshold,index)=>savedProgress.xp>=threshold&&!savedProgress.claimed.includes(index));
+  const ballReady=(window.BallUpgrades?.tiers||[]).some((tier,index)=>savedProgress.xp>=tier.threshold&&!savedProgress.claimedBallTiers.includes(index));
+  return clubReady||ballReady;
 }
 function burstConfetti(){const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
 $('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');updateHud();showCallout('A NEW ADVENTURE','✳',1300)});
