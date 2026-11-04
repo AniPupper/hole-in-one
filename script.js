@@ -437,9 +437,9 @@ function renderCart() {
     ? (ballTiers[currentBallTierIndex()].choices.includes(selectedBallId) ? selectedBallId : ballTiers[currentBallTierIndex()].choices[0]) : null;
   suggestion.hidden = !nextClub && !nextBall;
   suggestion.innerHTML = nextClub
-    ? `<div><span>COMPLETE THE PAIR</span><strong>Add ${clubs[nextClub].name}?</strong><small>${tiers[currentTierIndex()].threshold.toLocaleString()} XP · Club</small></div><button type="button" data-suggest-club="${nextClub}">Add club +</button>`
+    ? `<span class="pair-suggestion-icon" aria-hidden="true">✦</span><div><span>RECOMMENDED ADD-ON · CLUB</span><strong>Add ${clubs[nextClub].name}</strong><small>${tiers[currentTierIndex()].threshold.toLocaleString()} XP · Complete your cart in one checkout</small></div><button type="button" data-suggest-club="${nextClub}">Add club to cart <b aria-hidden="true">+</b></button>`
     : nextBall
-      ? `<div><span>COMPLETE THE PAIR</span><strong>Add ${balls[nextBall].name}?</strong><small>${ballTiers[currentBallTierIndex()].threshold.toLocaleString()} XP · Ball</small></div><button type="button" data-suggest-ball="${nextBall}">Add ball +</button>` : '';
+      ? `<span class="pair-suggestion-icon ball" aria-hidden="true">●</span><div><span>RECOMMENDED ADD-ON · BALL</span><strong>Add ${balls[nextBall].name}</strong><small>${ballTiers[currentBallTierIndex()].threshold.toLocaleString()} XP · Complete your cart in one checkout</small></div><button type="button" data-suggest-ball="${nextBall}">Add ball to cart <b aria-hidden="true">+</b></button>` : '';
   document.getElementById('claim-cost').textContent = clubCost ? `${clubCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-ball-cost').textContent = ballCost ? `${ballCost.toLocaleString()} XP` : '—';
   document.getElementById('claim-balance').textContent = `${progress.xp.toLocaleString()} XP`;

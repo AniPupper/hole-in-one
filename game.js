@@ -1203,10 +1203,10 @@ function ballPhysicsProfile(id){
     groundRestitution:.22+b*.11,
     // Classic White is a deliberately slower starter. Every purchased ball
     // restores a quicker full-power launch, even if its roll stat is low.
-    launchMultiplier:id==='classic'?.82:1+r*.16,
-    dragMultiplier:1-r*.16,
-    spinRate:sp*.10,
-    liftMultiplier:1+b*.16
+    launchMultiplier:id==='classic'?.68:1.04+r*.27,
+    dragMultiplier:1-r*.26,
+    spinRate:sp*.15,
+    liftMultiplier:1+b*.23
   };
 }
 function gearGrowth(value,base=4){
@@ -1244,9 +1244,9 @@ function clubPhysicsProfile(id){
   const generated=/^club-t(\d+)-([abc])$/.exec(id||'');
   const item=generated?window.GearProgression?.club(Number(generated[1]),'abc'.indexOf(generated[2])):null;
   const [distance,height,tricks]=item?.stats||curatedClubStats[id]||curatedClubStats.rookie;
-  return{speedMultiplier:1+.18*gearGrowth(distance),
-    heightMultiplier:1+.22*gearGrowth(height),
-    spinMultiplier:1+.22*gearGrowth(tricks)};
+  return{speedMultiplier:1+.30*gearGrowth(distance),
+    heightMultiplier:1+.34*gearGrowth(height),
+    spinMultiplier:1+.35*gearGrowth(tricks)};
 }
 function cupDirection(){const x=CUP.x-ball.x,z=CUP.z-ball.z,n=Math.hypot(x,z)||1;return{x:x/n,z:z/n,distance:n};}
 function setEffect(kind,x,z,seconds=1){if(!shot)return;shot.effect={kind,x,z,until:shot.elapsed+seconds};}

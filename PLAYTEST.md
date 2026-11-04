@@ -4,7 +4,7 @@
 
 **Design claim:** *Hole in One makes quick-break players feel satisfied by every guaranteed hole-in-one and eager to keep playing because the next course promises a new spectacle.*
 
-**Testing status:** This document contains the test plan and owner QA findings. It is **not yet a complete CP5 submission**: add a classmate's real session notes and the full external AI user-test output before committing `CP5: playtest notes`.
+**Testing status:** Maddy provided classmate feedback on the purchasing and gameplay-upgrade flows. The full task-by-task session record and external AI user-test output are still pending, so this is not yet a complete CP5 submission.
 
 ## What I am testing
 
@@ -24,9 +24,11 @@ Two project mechanics are included in the test:
 
 ## Classmate session - required for CP5
 
-**Tester name or initials:** `PENDING`
+**Tester name or initials:** Maddy
 
-**Date and browser/device:** `PENDING`
+**Date and browser/device:** November 4, 2026; browser/device not recorded
+
+**Session record:** Maddy's two findings were captured after using the purchasing and gameplay-upgrade flows. A complete task-by-task observation record was not captured, so a second, fully documented pass is still needed for the final submission.
 
 **Starting state:** Use a fresh browser profile or clear this site's local storage. Test the live Vercel URL, not a local file.
 
@@ -63,7 +65,8 @@ Record what the tester actually did and said here. Do not replace these with con
 
 | Moment | Observation or direct quote | Severity | Follow-up |
 | --- | --- | --- | --- |
-| `PENDING` | `PENDING` | `PENDING` | `PENDING` |
+| Cart add-on suggestion | Maddy said the optional extra club or ball was easy to overlook while purchasing. | High | Make the recommendation visually dominant and make its action explicit. |
+| Upgrade impact | Maddy said that faster or trickier clubs and balls were not noticeably different during play. | High | Increase the visible effects of speed, lift, bounce, and spin. |
 
 ## External AI user test - required for CP5
 
@@ -91,11 +94,12 @@ Fill this in only after reviewing the real classmate and AI test results. Each e
 
 | Evidence from test | Change made | Why this response was chosen | Verification |
 | --- | --- | --- | --- |
-| `PENDING` | `PENDING` | `PENDING` | `PENDING` |
+| Maddy: the extra club or ball suggestion was easy to overlook. | Rebuilt the suggestion as a highlighted recommended add-on card with a large icon, clear label, visible item name, and full-width Add to cart action. | The original small, low-contrast strip blended into the cart's other details. The revised treatment makes the optional add-on a deliberate decision. | Verify in the live cart when one compatible item is selected. |
+| Maddy: faster or trickier gear did not feel different enough in play. | Increased ball launch, roll, bounce, and spin effects, and increased club speed, height, and trick/spin effects. Classic White remains the slow baseline. | Gear should change the route and movement enough to validate the purchase, while preserving the guaranteed hole-in-one. | 3D physics contract passed on November 4; replay a comparable live hole with starter and upgraded gear before shipping. |
 
 ## Ship checklist
 
-- [ ] Classmate session completed and documented above.
+- [ ] Complete a full task-by-task classmate session; Maddy's feedback is recorded above, but the full observation record is still needed.
 - [ ] Full external AI User Test Prompt output pasted above.
 - [ ] At least two test problems selected and addressed, or a written reason explains why no change was needed.
 - [ ] Automated smoke and 3D physics checks pass.
