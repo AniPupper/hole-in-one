@@ -533,7 +533,17 @@ document.getElementById('claim-confirm').addEventListener('click', () => {
 
 document.getElementById('claim-close').addEventListener('click', () => hideModal('claim-modal'));
 document.getElementById('claim-back').addEventListener('click', () => hideModal('claim-modal'));
-document.getElementById('claim-done').addEventListener('click', () => { window.location.href = './game.html'; });
+document.getElementById('claim-done').addEventListener('click', () => {
+  // A purchase made after a win should lead to a fresh hole, not replay the win.
+  try {
+    const key = 'hole-in-one-course-v1';
+    const course = JSON.parse(localStorage.getItem(key));
+    if (course?.completed && Number.isInteger(course.level) && course.level > 0) {
+      localStorage.setItem(key, JSON.stringify({ level: course.level + 1, completed: false }));
+    }
+  } catch (_) { /* The game can still open if storage is unavailable. */ }
+  window.location.href = './game.html';
+});
 
 function showModal(id) {
   modalReturnFocus = document.activeElement;

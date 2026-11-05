@@ -26,6 +26,8 @@
       float sparkle=pow(max(dot(normal,normalize(light+viewDirection)),0.0),mix(12.0,58.0,vShine))*vShine*0.55;
       float paleSurface=smoothstep(2.72,2.94,vColor.r+vColor.g+vColor.b);
       vec3 color=vColor*(hemisphere+shade*0.58)+vec3(0.16)*paleSurface+vec3(1.0,0.91,0.72)*sparkle;
+      // Classic White uses a softer fill so its shaded side stays white.
+      if(vShine>1.0)color=vColor*(0.80+shade*0.16)+vec3(0.08);
       outputColor=vec4(pow(min(color,vec3(1.0)),vec3(0.94)),1.0);
     }`;
   const compile=(kind,source)=>{const shader=gl.createShader(kind);gl.shaderSource(shader,source);gl.compileShader(shader);if(!gl.getShaderParameter(shader,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(shader));return shader;};
@@ -76,7 +78,7 @@
     for(let i=0;i<lat;i++)for(let j=0;j<lon;j++){const a=at(i,j),b=at(i+1,j),c=at(i+1,j+1),d=at(i,j+1);smoothTri(a.p,a.n,b.p,b.n,c.p,c.n,color,shine);smoothTri(a.p,a.n,c.p,c.n,d.p,d.n,color,shine);}
   }
   let golfMesh=null;
-  function golfShell(x,y,z,color){
+  function golfShell(x,y,z,color,classicWhite=false){
     if(!golfMesh){
       const lat=30,lon=48,r=.19,centers=[];
       for(let i=0;i<72;i++){
@@ -107,7 +109,7 @@
     }
     const offset=V(x,y,z),col=rgb(color);
     for(const vertex of golfMesh)
-      emit(world(add(offset,vertex.p)),normalWorld(vertex.n),col,.69);
+      emit(world(add(offset,vertex.p)),normalWorld(vertex.n),col,classicWhite?1.01:.69);
   }
   function ellipseDisc(x,y,z,rx,rz,height,sideColor,topColor,segments=28){
     const y0=y,y1=y+height;
@@ -245,7 +247,7 @@
   function modelBall(family='classic',x=0,y=.23,z=0,time=0,shellOverride=null){
     const palettes={classic:['#fcfcf6','#d5dfd7'],rebound:['#fff6e6','#d58a68'],whirl:['#effcf9','#72b9b5'],glide:['#f8f5ff','#ae9bc9']};
     const [shell,trim]=palettes[family]||palettes.classic;
-    golfShell(x,y,z,shellOverride||shell);
+    golfShell(x,y,z,shellOverride||shell,family==='classic');
     if(family==='classic')return;
     // Two thin, broken meridian seams tie the emblem to the pearl shell
     // without a heavy equator ring or high-contrast polka dots.
