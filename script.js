@@ -172,8 +172,8 @@ function render() {
   document.getElementById('hero-description').textContent = complete
     ? allBallsClaimed() ? 'More adventures await.' : 'Ball upgrades await.'
     : unlocked
-      ? 'Pick a club + ball. Play a hole.'
-      : 'Sink shots. Upgrade.';
+      ? 'Choose a club, a ball, or both. Play the next hole.'
+      : 'Sink a hole-in-one every time. Earn gear for the next course.';
 
   const wallet = document.getElementById('wallet-xp');
   wallet.innerHTML = `${progress.xp.toLocaleString()} <span>XP</span>`;
