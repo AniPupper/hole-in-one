@@ -22,6 +22,10 @@ Two project mechanics are included in the test:
 | **Manipulation: XP-gated gear progression** | Earned XP and the next available upgrade create anticipation and make another hole feel worthwhile. | Does the player notice XP, understand why an item is locked, and want to earn enough for a choice? |
 | **Self-binding: Cart cost preview** | The right-side cart shows the item price, cart total, XP balance, and XP after purchase before checkout. It makes the trade-off visible before the player commits. | Does the player notice the balance-after-purchase information and use it to decide whether to buy now? |
 
+## October 29 — individual testing and debugging
+
+I worked through the shopping flow and improved the cart so players could review a club and ball together, see the XP cost, and keep browsing while the cart stayed available on the right. I also debugged course elements, including the windmill's direction, camera controls, and the way hills affect the ball and nearby rails. This was individual testing and development, not a classmate playtest.
+
 ## Classmate session - required for CP5
 
 **Tester name or initials:** Maddy
@@ -119,7 +123,7 @@ The first two entries are based on Maddy's reported findings. The AI test has no
 - [x] Changes made in response to Maddy's two findings are documented above with reasons.
 - [ ] Record of Thinking written from actual commits, chats, and playtest evidence.
 - [ ] Checkpoint history: `CP0: Initial setup of repo` is absent. The exact CP1–CP5 messages exist, but the counts of own commits before CP3, CP4, and CP5 are 2, 2, and 1 rather than the requested 3. Do not invent or backdate missing work.
-- [ ] Make at least three genuine, descriptive commits after CP5 before the exact `CP6: ship` checkpoint.
-- [ ] Commit `CP6: ship` created after fixes, documentation, and deployment verification.
+- [ ] The required three descriptive commits between CP5 and CP6 are absent; CP6 follows CP5 directly.
+- [x] The exact `CP6: ship` commit exists (`a8273e7`); final deployment verification remains pending.
 
 **Deployment check on November 4:** The public shop and course opened, but the sound toggle from this local version was absent. The latest sound changes, including the purchase party horn, therefore have not been verified on the production site. Check both pages again after deployment.
