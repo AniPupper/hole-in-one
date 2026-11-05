@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'hole-in-one-progress-v1';
 const CART_KEY = 'hole-in-one-cart-v1';
+const sound = window.HoleInOneSound || { ui() {}, purchase() {}, bind() {} };
 const balls = window.BallUpgrades.catalog;
 const ballTiers = window.BallUpgrades.tiers;
 
@@ -61,6 +62,7 @@ let claimRevealTimer = null;
 let claimSelectedId = null;
 let cartBallId = null;
 let detailSelection = null;
+sound.bind(document.getElementById('sound-toggle'));
 
 function restoreCart() {
   try {
@@ -268,20 +270,22 @@ function renderDetailComparison() {
   const item = catalog[id];
   const referenceId = document.getElementById('detail-compare').value;
   const reference = catalog[referenceId] || catalog[kind === 'club' ? progress.equipped : progress.equippedBall];
-  const labels = kind === 'club' ? ['↗', '↥', '✦'] : ['⤴', '⟳', '→'];
   const labelNames = kind === 'club' ? ['Distance', 'Height', 'Tricks'] : ['Bounce', 'Spin', 'Roll'];
   const scale = Math.max(10, ...item.stats, ...reference.stats);
   const referenceArt = kind === 'club' ? clubArtwork(reference) : window.BallUpgrades.artwork(referenceId);
   const candidateArt = kind === 'club' ? clubArtwork(item) : window.BallUpgrades.artwork(id);
   document.getElementById('detail-visual-compare').innerHTML = `
-    <div class="compare-gear candidate"><div class="compare-art ${kind === 'club' ? `club-art ${item.art || ''}` : `ball-art ${item.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${item.color};--club-grip:${item.grip}` : `--ball-color:${item.color};--ball-accent:${item.accent}`}" aria-hidden="true">${candidateArt}</div><span>${item.name}</span></div>
+    <div class="compare-gear candidate"><div class="compare-art ${kind === 'club' ? `club-art ${item.art || ''}` : `ball-art ${item.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${item.color};--club-grip:${item.grip}` : `--ball-color:${item.color};--ball-accent:${item.accent}`}" aria-hidden="true">${candidateArt}</div><small>SELECTED</small><span>${item.name}</span></div>
     <span class="compare-versus" aria-hidden="true">VS</span>
-    <div class="compare-gear reference"><div class="compare-art ${kind === 'club' ? `club-art ${reference.art || ''}` : `ball-art ${reference.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${reference.color};--club-grip:${reference.grip}` : `--ball-color:${reference.color};--ball-accent:${reference.accent}`}" aria-hidden="true">${referenceArt}</div><span>${reference.name}</span></div>`;
+    <div class="compare-gear reference"><div class="compare-art ${kind === 'club' ? `club-art ${reference.art || ''}` : `ball-art ${reference.rank ? 'generated' : ''}`}" style="${kind === 'club' ? `--club-color:${reference.color};--club-grip:${reference.grip}` : `--ball-color:${reference.color};--ball-accent:${reference.accent}`}" aria-hidden="true">${referenceArt}</div><small>COMPARED</small><span>${reference.name}</span></div>`;
   document.getElementById('detail-chart').innerHTML = item.stats.map((value, index) => {
     const other = reference.stats[index], delta = value - other;
-    return `<div class="detail-chart-row"><span title="${labelNames[index]}" aria-label="${labelNames[index]}">${labels[index]}</span>
-      <div class="detail-bars"><i class="candidate-bar" style="width:${Math.max(3, value / scale * 100)}%"></i><i class="reference-bar" style="width:${Math.max(3, other / scale * 100)}%"></i></div>
-      <strong class="${delta < 0 ? 'loss' : ''}">${value} <small>${delta > 0 ? '+' : delta < 0 ? '−' : '='}${Math.abs(delta)}</small></strong></div>`;
+    const difference = delta > 0 ? `+${delta}` : delta < 0 ? `−${Math.abs(delta)}` : 'Equal';
+    return `<div class="detail-chart-row" role="group" aria-label="${labelNames[index]}: ${item.name} ${value}, ${reference.name} ${other}, difference ${difference}">
+      <div class="detail-stat-heading"><strong>${labelNames[index]}</strong><span class="detail-stat-delta ${delta < 0 ? 'loss' : ''}">${difference}</span></div>
+      <div class="detail-stat-line candidate"><span class="detail-bar-name">${item.name}</span><span class="detail-bar-track" aria-hidden="true"><i class="candidate-bar" style="width:${Math.max(3, value / scale * 100)}%"></i></span><b>${value}</b></div>
+      <div class="detail-stat-line reference"><span class="detail-bar-name">${reference.name}</span><span class="detail-bar-track" aria-hidden="true"><i class="reference-bar" style="width:${Math.max(3, other / scale * 100)}%"></i></span><b>${other}</b></div>
+    </div>`;
   }).join('');
 }
 
@@ -451,8 +455,9 @@ function renderCart() {
   document.getElementById('claim-confirm').disabled = !itemCount || progress.xp < needed;
 }
 
-document.getElementById('claim-button').addEventListener('click', () => openClaimCart());
+document.getElementById('claim-button').addEventListener('click', () => { sound.ui(); openClaimCart(); });
 document.getElementById('topbar-cart').addEventListener('click', () => {
+  sound.ui();
   if (!document.getElementById('claim-modal').hidden) hideModal('claim-modal');
   else openClaimCart();
 });
@@ -481,6 +486,7 @@ document.getElementById('claim-confirm').addEventListener('click', () => {
   }
   const chosenClub = validClub ? clubs[claimSelectedId] : null;
   const chosenBall = validBall ? balls[cartBallId] : null;
+  sound.purchase();
   if (validClub) {
     progress.equipped = claimSelectedId;
     progress.claimed.push(clubTierIndex);

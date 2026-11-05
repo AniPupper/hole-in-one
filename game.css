@@ -5,6 +5,7 @@
 /* The course uses warm action accents; XP remains the only yellow reward signal. */
 .game-shell::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 80% 65% at 50% 53%,transparent 46%,#4a603117 100%)}
 .shop-button{height:55px;padding:0 21px;background:#b95329;border:2px solid #f9c78b;color:#fff8ec;box-shadow:0 6px 0 #773d29,0 15px 28px #8542274d;font-size:12px;letter-spacing:1.35px}
+.sound-toggle{height:42px;display:flex;align-items:center;gap:7px;border:1px solid #d4c98f;border-radius:999px;padding:0 13px;background:#fff9ec;color:#315744;font-size:12px;font-weight:900;letter-spacing:.4px;cursor:pointer;box-shadow:0 3px 0 #9ca57c55}.sound-toggle:hover{transform:translateY(-1px);background:#fff0d2}.sound-toggle.muted{color:#866e5a;background:#f3eee4}.sound-toggle [data-sound-icon]{font-size:16px;color:#b95329}.sound-toggle.muted [data-sound-icon]{color:#8f8476}
 .shop-button:hover,.shop-button:focus-visible{background:#d36a35;transform:translateY(-2px);box-shadow:0 8px 0 #773d29,0 18px 32px #85422755}
 .shop-button:active{transform:translateY(3px);box-shadow:0 2px 0 #773d29,0 8px 15px #85422755}
 .shop-symbol{color:#ffe7a8}.shop-arrow{color:#ffe7a8}
@@ -22,7 +23,7 @@
 .celebration-actions button{background:#b95329;color:#fff9ec;box-shadow:0 5px 0 #7f3d25}
 .celebration-actions button:hover{background:#d46b36}
 .celebration-actions a{color:#b95329}
-@media(max-width:680px){.shop-button{height:43px;padding:0 10px;font-size:12px;border-width:1px;box-shadow:0 4px 0 #773d29,0 8px 15px #85422744}.xp-pill{height:48px}.shot-percent{font-size:20px}}
+@media(max-width:680px){.shop-button{height:43px;padding:0 10px;font-size:12px;border-width:1px;box-shadow:0 4px 0 #773d29,0 8px 15px #85422744}.sound-toggle{width:42px;padding:0;justify-content:center}.sound-toggle [data-sound-label]{display:none}.xp-pill{height:48px}.shot-percent{font-size:20px}}
 @media(max-width:360px){.shop-button{height:41px;padding:0 7px;font-size:11px}.xp-pill{height:44px}}
 @media(prefers-reduced-motion:reduce){.shop-button,.shot-dock,.event-callout{transition:none}.wind-streaks i{animation:none}}
 
@@ -157,3 +158,7 @@
 @media(max-width:680px){.preview-help{font-size:9px}.preview-actions button{flex:1 1 auto;padding:0 8px}.shot-dock .course-utility{gap:5px}.course-preview-button{font-size:8px;letter-spacing:.4px}}
 .shot-dock .course-utility{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .shot-dock .course-utility .tutorial-replay{min-width:0;min-height:44px;justify-content:center}
+@keyframes control-hover-bump{0%,100%{translate:0 0}38%{translate:0 -2px}67%{translate:1px 0}82%{translate:-1px 0}}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  button:not(:disabled):hover,a.shop-button:hover{animation:control-hover-bump .23s ease-out}
+}

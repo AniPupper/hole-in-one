@@ -5,6 +5,10 @@
 **Status:** In development. A live build is available at [hole-in-one-roan.vercel.app](https://hole-in-one-roan.vercel.app/).
 **Built with:** AI coding assistants (OpenAI Codex, Anthropic Claude Code), deployed as a static site on Vercel
 
+**Design claim:** My site makes quick-break players feel satisfied and eager to keep playing when each first swing produces a hole-in-one and reveals a different course.
+
+**Three must-haves for this release:** A guaranteed first-shot hole-in-one with a varied visible route; a persistent XP, gear, and cart loop; and a quick gear purchase with a celebratory reveal. **Outside this release:** accounts, real payments, and publishing player-made levels. The separate level editor is a future project, not a shipped feature.
+
 ---
 
 ## Product Goal
@@ -59,9 +63,15 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 **Onboarding**
 - A single-screen tutorial on first visit explains aiming, the guaranteed hole-in-one, and the shop. Players can reopen it from the course.
 
+**Sound**
+- Distinct golf club strikes, ball movement, course interactions including a small river-entry splash, cup, and a restrained win cue. A short party horn marks shop purchases. The player can mute sound on either screen, and that choice persists locally.
+
+**Course preview**
+- A **View course** button opens a pre-shot camera preview. Players drag to rotate, scroll or use buttons to zoom, shift-drag to pan, and move between tee and cup with buttons or arrow/WASD keys. Back to Shot returns to the tee without swinging. During the shot, the camera follows the ball automatically; a held drag changes the view angle.
+
 **Planned capabilities (in development)**
+- A separate level editor for player-made courses, including validation, local drafts, and a publishing approach.
 - Further Pro Shop polish, including a receipt and a locker of owned items.
-- A **View course** button opens a pre-shot camera preview. Players drag to rotate, scroll or use buttons to zoom, shift-drag to pan, and move between tee and cup with buttons or arrow/WASD keys. Back to Shot returns to the tee without swinging. During the shot, the camera follows the ball automatically. Holding and dragging on the course changes its viewing angle; the chosen angle stays in place for the rest of the shot.
 - A rolling animation for the ball.
 - Retuned shot power, so full power feels proportionally stronger.
 - Moles rise in response to a ball that is heading off course, moving away from the cup, or nearly stopped away from the cup. They stay up long enough to be seen, and their predicted meeting point must clear course rails and nearby obstacles. If that point is unsafe or the ball is too high, a wind rescue takes over.
@@ -72,7 +82,7 @@ No accounts, payment, or prior gaming experience are required. Hole in One is a 
 **From the player**
 - Pointer or touch input for the shot: press, drag direction and distance, release.
 - Clicks or taps in the Pro Shop: add to cart, remove from cart, purchase, close the reveal, navigate to the course.
-- Optional inputs: reopening the tutorial, and camera movement once View the Course ships.
+- Optional inputs: reopening the tutorial, moving the preview camera, changing the follow camera angle, and muting sound.
 
 **From the system**
 - Saved progress in browser storage (`hole-in-one-progress-v1`): XP balance, hole count, equipped and owned club and ball IDs, and claimed tiers.
@@ -96,7 +106,7 @@ The product collects no personal information. No account, email address, or paym
 **Flow B: Purchasing gear**
 1. The player opens the site at the Pro Shop, or returns to it from the course.
 2. The player browses the current tier's three clubs and three balls, with future tiers teased without item details. Cards prioritize artwork and rarity. The equipped club and ball appear beside the XP balance; owned items live in **My Gear**.
-3. Selecting a card opens a detail side panel with artwork and visual, exact stat comparisons. The player chooses whether to compare with equipped gear or another same-tier choice, then selects **Add to cart**. Locked gear remains viewable with its purchase action disabled.
+3. Each available item has separate **Add to cart** and **View details** actions. View details opens a side panel with artwork and visual, exact stat comparisons; the player can choose equipped gear or another same-tier choice as the comparison. Locked gear remains viewable with its purchase action disabled.
 4. A right-side cart drawer opens with a large view of the selected gear, its price, the total, and the remaining XP. It holds one club and one ball, replacing a same-type selection immediately. The player can continue browsing; a matching item may be suggested, but is added only on confirmation. Cart selections remain when the drawer closes or the player leaves and returns.
 5. The player selects **Purchase**. The gear is equipped and a reveal animation plays.
 6. The reveal offers **Play a hole**, which returns the player to the course with the new gear.
@@ -105,7 +115,7 @@ The product collects no personal information. No account, email address, or paym
 1. The player opens the site, and saved XP, gear, and course level load from browser storage.
 2. The player resumes the next saved hole or visits the shop to spend accumulated XP. Completed courses are not available for replay; progression moves forward only.
 
-**Flow D: Viewing the course (planned)**
+**Flow D: Viewing the course**
 1. Before the first stroke, the player may select **View course** to explore the hole and return to the tee without swinging.
 2. The player returns to the tee and takes the shot.
 3. The camera follows the moving ball automatically. Hold and drag on the course to change the viewing angle; that angle persists until the shot ends.

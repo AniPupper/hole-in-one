@@ -4,15 +4,15 @@ A dopamine-forward mini golf game where **every first stroke is a hole-in-one**.
 
 ## Game concept
 
-- The home screen is a playable mini golf course. Click or press and hold, pull back to aim and set power, then release to swing.
+- The home screen is the Pro Shop. Select **Play a hole** for the 3D course, then press and hold, pull back to aim and set power, and release to swing.
 - Every first shot reaches the hole. A weak shot might get a visible gust of wind; later holes can use loops, launch pads, cannons, lazy rivers, and increasingly elaborate chain reactions.
-- Each hole-in-one ends with confetti and awards XP. Later levels should build toward a roughly minute-long sequence of quick, surprising events before the ball drops.
-- The game HUD can show the level, equipped club, wind, and swing power.
-- A side button opens the Pro Shop. At XP milestones, the player chooses **one of three** clubs and **one of three** balls to replace current gear. Later clubs improve distance, height, and trick potential; later balls improve bounce, spin, and roll.
+- Each hole-in-one ends with confetti and awards XP. A typical shot aims for about 10–20 seconds of course interactions before the ball drops.
+- The game HUD shows the level, equipped gear, course conditions, and swing power.
+- A header link opens the Pro Shop. At XP milestones, the player chooses **one of three** clubs and **one of three** balls to replace current gear. Later clubs improve speed, height, and trick potential; later balls improve bounce, spin, and roll.
 
 ## Implemented now: Pro Shop
 
-The Pro Shop is a responsive screen with three club and three ball choices per reward tier, prominent artwork, rarity tags, comparison with equipped gear, bright XP price tags, one-time purchases, and browser-local saved progress. Clicking a club or ball card adds that item to a cart modal. When the XP balance can cover a matching item, the cart suggests it and waits for the player to add it. The cart can hold one club and one ball, lets the player switch or remove either item, and completes both upgrades in one purchase. A single item takes two clicks from its card: **Add to cart**, then **Purchase**. The header count and fixed summary keep the cart visible while browsing; selections persist locally until purchase. The modal shows each price, their sum, and the remaining XP balance. Purchase immediately equips the gear and starts an animated reveal with confetti; it respects reduced-motion settings. The reveal leads straight to **Play a hole**, while the close button returns to browsing. The prominent **Play a hole** links open `game.html`, the full-screen course; its **Pro Shop** link returns to `index.html`.
+The Pro Shop has three club and three ball choices per reward tier, prominent artwork, rarity tags, bright XP prices, and browser-local saved progress. Each available item has **Add to cart** and **View details** actions. View details opens a side panel with artwork and selectable visual stat comparisons. Add to cart opens a right-side drawer that contains only the selected items and an optional matching-gear suggestion. The cart holds one club and one ball, replaces a same-type selection immediately, and persists across reloads until purchase or removal. It shows each price, the total, and the XP balance after purchase. Purchase equips the gear and starts a confetti reveal that leads to **Play a hole**. Sound can be turned off on either screen; that preference survives reloads.
 
 Open `index.html` in a browser. The project currently has no build step or package dependencies. If local file restrictions interfere with fonts or storage, serve the directory with `python3 -m http.server 8000` and open `http://localhost:8000`.
 
@@ -20,11 +20,11 @@ Run the automated progression and physics smoke suite with `python3 tests/run_sm
 
 ## Deployment
 
-This is a static site with no build step. For a direct Vercel deployment, upload only `index.html`, `game.html`, `styles.css`, `game.css`, `game-3d.js`, `tutorial.css`, `script.js`, `game.js`, `tutorial.js`, `shop-tutorial.js`, `gear-progression.js`, `ball-upgrades.js`, and `course-blueprints.js` as a folder or ZIP through [Vercel Drop](https://vercel.com/drop). Keep these files at the upload root so `/` opens `index.html` and `/game.html` opens the course. Do not include `.git`, tests, or project notes in the site upload.
+This is a static site with no build step. The class assignment calls for a GitHub-connected Vercel project so each push updates the live site; verify that connection in the Vercel dashboard. For a direct deployment fallback, upload only `index.html`, `game.html`, `styles.css`, `game.css`, `game-3d.js`, `tutorial.css`, `script.js`, `game.js`, `sound.js`, `tutorial.js`, `shop-tutorial.js`, `gear-progression.js`, `ball-upgrades.js`, `course-blueprints.js`, and the `assets/audio` folder as a folder or ZIP through [Vercel Drop](https://vercel.com/drop). Keep these files at the upload root so `/` opens `index.html` and `/game.html` opens the course. Do not include `.git`, tests, or project notes in the site upload.
 
 Choose a Vercel team and project name, then deploy. Vercel Drop creates a production project without a Git commit. For later edits, upload the refreshed folder to the existing project in its Vercel dashboard; a new drop from `/drop` creates a separate project. The deployed game saves XP and gear in each visitor's browser `localStorage`, so progress stays with that browser and does not sync across devices.
 
-**Publication status:** The site is live at [hole-in-one-roan.vercel.app](https://hole-in-one-roan.vercel.app/). The public shop and `/game.html` course both opened successfully on October 22, 2026. The current Vercel deployment method and its GitHub auto-deploy connection have not been independently verified; check the project's Vercel dashboard before assuming future commits publish automatically.
+**Publication status:** The public [shop](https://hole-in-one-roan.vercel.app/) and [course](https://hole-in-one-roan.vercel.app/game.html) both opened on November 4, 2026, but the new sound toggle was absent. The current local changes are therefore not yet verified on the live site. Confirm the project's GitHub-to-Vercel connection and inspect both public pages after the final push; a local commit alone does not establish that the final build is live.
 
 ## Progress data
 

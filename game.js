@@ -11,6 +11,7 @@ const MOLE_VISIBLE_SECONDS = 2.1;
 const MOLE_AFTER_CONTACT_SECONDS = 1.25;
 const MOLE_RAIL_CLEARANCE = .65;
 const MOLE_FEATURE_CLEARANCE = 1.0;
+const sound = window.HoleInOneSound || { ui() {}, swing() {}, event() {}, win() {}, confetti() {}, purchase() {}, roll() {}, stopRolling() {}, bind() {} };
 // All scenery and contacts use the same seeded, world-space course.  A hole's
 // number is its seed, so returning to that hole reproduces its exact layout.
 function courseLayout(level) {
@@ -122,6 +123,7 @@ const gameShell = document.querySelector('.game-shell');
 const ctx = scene.getContext('2d');
 let renderer3D = null;
 const $ = (id) => document.getElementById(id);
+sound.bind($('sound-toggle'));
 const stage = { width: 0, height: 0, dpr: 1, time: 0, featureTime: 0 };
 let savedProgress = readProgress();
 let courseState = readCourse();
@@ -1058,6 +1060,11 @@ function frame(now){
   // Keep ball, moving colliders, and follow camera on the same simulation
   // clock. A slow frame can catch up without taking a visible giant step.
   if(phase==='running')updateShot(Math.min(.12,frameMs/1000));else stage.featureTime=now/1000;
+  if(phase==='running'&&shot){
+    const speed=Math.hypot(shot.velocity.x,shot.velocity.z);
+    const ground=courseSurfaceAt(ball.x,ball.z,ball.y)+BALL_RADIUS;
+    sound.roll(speed,ball.y<=ground+.055);
+  }else sound.roll(0,false);
   updateCamera(now);
   if(renderer3D){
     try{
@@ -1251,7 +1258,7 @@ function clubPhysicsProfile(id){
 function cupDirection(){const x=CUP.x-ball.x,z=CUP.z-ball.z,n=Math.hypot(x,z)||1;return{x:x/n,z:z/n,distance:n};}
 function setEffect(kind,x,z,seconds=1){if(!shot)return;shot.effect={kind,x,z,until:shot.elapsed+seconds};}
 function contactEvent(kind,x,z,label,icon='✳'){
-  setEffect(kind,x,z,1.25);showCallout(label,icon,1000);
+  setEffect(kind,x,z,1.25);sound.event(kind,label);showCallout(label,icon,1000);
   const p=project(x,.25,z);sparkleBurst(p.x,p.y,20);
 }
 function reflectWall(axis,limit){
@@ -1727,7 +1734,12 @@ function stepPhysics(dt){
     if(f.kind==='windmill')windmillContact(f,featureTime,before);
     if(f.kind==='bridge')bridgeContact(f,before);
   }
+  const wasInRiver=shot.riverActive;
   shot.riverActive=riverContact(dt);
+  if(shot.riverActive&&!wasInRiver&&shot.elapsed-shot.lastRiverSplash>1.25){
+    shot.lastRiverSplash=shot.elapsed;
+    sound.event('river');
+  }
   moleContact();
   for(const tree of layout.trees)contactBumper(tree.x,tree.z,.10*tree.scale+BALL_RADIUS,layout.heightAt(tree.x,tree.z),'tree',1.45*tree.scale);
   // The visible flagpole stands beyond the dark cup mouth.
@@ -1742,6 +1754,7 @@ function stepPhysics(dt){
 function startShot(p,vector){
   if(phase!=='ready')return;
   const dir=aimWorldDirection(vector),strength=Math.max(0,Math.min(100,p));
+  sound.swing(savedProgress.equipped,strength);
   const ballProfile=ballPhysicsProfile(savedProgress.equippedBall);
   const clubProfile=clubPhysicsProfile(savedProgress.equipped);
   const pull=strength/100;
@@ -1751,7 +1764,7 @@ function startShot(p,vector){
   const speed=(.3+pull*6.6+3.5*pull**3)*ballProfile.launchMultiplier*clubProfile.speedMultiplier*gearFreshnessMultiplier();
   const cross=dir.x*courseForward.z-dir.z*courseForward.x;
   shot={start:performance.now(),elapsed:0,power:strength,ballProfile,clubProfile,spinSign:Math.abs(cross)<.03?0:Math.sign(cross),velocity:{x:dir.x*speed,y:strength/100*.45*clubProfile.heightMultiplier,z:dir.z*speed},
-    windActive:false,riverActive:false,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),tunnelEntries:new Set(),tunnelAwards:new Set(),tunnelBonus:0,sinking:false,lastTrail:0,lastCue:''};
+    windActive:false,riverActive:false,lastRiverSplash:-10,gustAt:null,lastGust:-10,lastMole:-10,lastBlade:-10,mole:null,effect:null,lastWall:-10,lastBumper:-10,usedBoosts:new Set(),tunnelEntries:new Set(),tunnelAwards:new Set(),tunnelBonus:0,sinking:false,lastTrail:0,lastCue:''};
   cameraOrbit.yaw=0;cameraOrbit.pitch=0;cameraOrbit.zoom=1;cameraOrbit.pointer=null;
   phase='running';gameShell.classList.add('shot-running');$('shot-dock').classList.add('hidden');$('view-hint').hidden=false;
   showCallout(strength<24?'A GENTLE TAP':'LET IT FLY!',strength<24?'〰':'↗',800);setPower(0);
@@ -1770,7 +1783,7 @@ function updateShot(elapsedSeconds){
   if(shot.riverActive&&shot.lastCue!=='river'){shot.lastCue='river';showCallout('THE RIVER HELPS','≈',1000);}
 }
 function finishShot(){
-  phase='complete';cameraOrbit.pointer=null;gameShell.classList.remove('shot-running');$('view-hint').hidden=true;$('wind-streaks').classList.remove('active');
+  phase='complete';cameraOrbit.pointer=null;gameShell.classList.remove('shot-running');$('view-hint').hidden=true;$('wind-streaks').classList.remove('active');sound.stopRolling();sound.win();
   const base=140+35*courseState.level+30*layout.features.length+Math.round(8*layout.span);
   const powerBonus=Math.min(50,Math.round(shot.power*.5));
   const tunnelBonus=shot.tunnelBonus||0,reward=base+powerBonus+tunnelBonus;
@@ -1798,5 +1811,5 @@ function hasAffordableGear(){
   const ballReady=(window.BallUpgrades?.tiers||[]).some((tier,index)=>savedProgress.xp>=tier.threshold&&!savedProgress.claimedBallTiers.includes(index));
   return clubReady||ballReady;
 }
-function burstConfetti(){const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
+function burstConfetti(){sound.confetti();const layer=$('confetti');layer.innerHTML='';const colors=['#bf5a2c','#ecab6f','#f4d27a','#8ec9a0','#ffffff','#729bb2'];for(let i=0;i<130;i++){const el=document.createElement('i');el.style.setProperty('--x',`${Math.random()*100}%`);el.style.setProperty('--w',`${4+Math.random()*8}px`);el.style.setProperty('--h',`${7+Math.random()*13}px`);el.style.setProperty('--c',colors[i%colors.length]);el.style.setProperty('--d',`${2.2+Math.random()*2}s`);el.style.setProperty('--delay',`${Math.random()*.6}s`);el.style.setProperty('--drift',`${(Math.random()-.5)*340}px`);el.style.setProperty('--rot',`${300+Math.random()*900}deg`);layer.appendChild(el);}setTimeout(()=>layer.innerHTML='',5000);}
 $('next-hole').addEventListener('click',()=>{courseState={level:courseState.level+1,completed:false};setLayout(courseState.level);save(COURSE_KEY,courseState);phase='ready';ball={...START};trail=[];shot=null;$('celebration').hidden=true;$('shot-dock').classList.remove('hidden');updateHud();showCallout('A NEW ADVENTURE','✳',1300)});

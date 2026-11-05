@@ -4,7 +4,7 @@
 
 **Design claim:** *Hole in One makes quick-break players feel satisfied by every guaranteed hole-in-one and eager to keep playing because the next course promises a new spectacle.*
 
-**Testing status:** Maddy provided classmate feedback on the purchasing and gameplay-upgrade flows. The full task-by-task session record and external AI user-test output are still pending, so this is not yet a complete CP5 submission.
+**Testing status (November 4, 2026):** Maddy provided classmate feedback on the purchasing and gameplay-upgrade flows, and both reported problems have been addressed in the local build. The complete task-by-task classmate record, full external AI user-test output, and post-fix production retest are still missing. The `CP5: playtest notes` commit exists, but its evidence is incomplete. Do not describe the final submission or deployment as verified until these gaps are resolved.
 
 ## What I am testing
 
@@ -87,23 +87,39 @@ These are real issues found during an internal review of the current build. They
 | Visit the Shop was visually weaker than Next Hole after a player could afford gear. | When any gear is affordable, both celebration actions use equal-sized, equal-weight buttons. | The choice between another spectacle and shopping should be intentional. |
 | Future gear exposed too much information. | Future cards now show anonymous locked drops and no item name, stats, or price. | Mystery supports anticipation without spoiling the catalog. |
 | Important labels fell below the 13px readability requirement. | Raised the named HUD and celebration labels, including Your Shot, Shot Reward, and In Your Bag, to 13px or larger. | Small labels made core feedback easy to miss. |
+| The gear comparison did not clearly connect each bar to its club or ball. | Added Selected and Compared labels to the gear artwork, printed both item names and exact values beside every color-matched stat bar, and replaced symbol-only stat labels with words. | Players can tell which gear owns each bar, even after switching the comparison item. Checked club and ball panels locally. |
+
+## Instructor feedback - Mr. Kiang
+
+| Feedback | Response | Status |
+| --- | --- | --- |
+| Add sound to make the course feel more responsive. | Replaced most generated effects with edited CC0 recordings. Drivers, wedges, and irons use distinct strikes, while the cup, wind, obstacles, and cannon retain their own sounds. Wins have a short, quiet clap; a quieter party horn is the only purchase sound. The rolling texture still reacts to ball speed. A Sound on/off control remembers the player's preference. | Implemented locally; listen and tune on the live build. |
+| Add a separate level editor so players can create and publish their own maps. | This is the next major feature after sound. It needs a dedicated editor, map validation, local draft saving, and a publishing approach; public sharing cannot be claimed until that workflow is built. | Planned. |
+| Make the course more varied. | Continue expanding course silhouettes, terrain shapes, and obstacle combinations so the next hole has a more distinct visual route and surprise. | Planned follow-up; use the level editor work to support broader course variety. |
 
 ## Changes after the classmate / AI test - required for CP6
 
-Fill this in only after reviewing the real classmate and AI test results. Each entry should connect a finding to a specific change and reason.
+The first two entries are based on Maddy's reported findings. The AI test has not been provided, so no AI findings or retest results are claimed here. Each entry connects an actual finding to a specific change and reason.
 
 | Evidence from test | Change made | Why this response was chosen | Verification |
 | --- | --- | --- | --- |
-| Maddy: the extra club or ball suggestion was easy to overlook. | Rebuilt the suggestion as a highlighted recommended add-on card with a large icon, clear label, visible item name, and full-width Add to cart action. | The original small, low-contrast strip blended into the cart's other details. The revised treatment makes the optional add-on a deliberate decision. | Verify in the live cart when one compatible item is selected. |
-| Maddy: faster or trickier gear did not feel different enough in play. | Increased ball launch, roll, bounce, and spin effects, and increased club speed, height, and trick/spin effects. Classic White remains the slow baseline. | Gear should change the route and movement enough to validate the purchase, while preserving the guaranteed hole-in-one. | 3D physics contract passed on November 4; replay a comparable live hole with starter and upgraded gear before shipping. |
+| Maddy: the extra club or ball suggestion was easy to overlook. | Rebuilt the suggestion as a highlighted recommended add-on card with a large icon, clear label, visible item name, and full-width Add to cart action. | The original small, low-contrast strip blended into the cart's other details. The revised treatment makes the optional add-on a deliberate decision. | Live cart retest is pending: add one item, then confirm the suggestion is noticed and remains optional. |
+| Maddy: faster or trickier gear did not feel different enough in play. | Increased ball launch, roll, bounce, and spin effects, and increased club speed, height, and trick/spin effects. Classic White remains the slow baseline. | Gear should change the route and movement enough to validate the purchase, while preserving the guaranteed hole-in-one. | Automated physics checks pass; compare the same course and shot with starter and upgraded gear on the final live build. |
+| Mr. Kiang: add sound feedback. | Added optional course sounds with a persistent mute preference, then replaced the dull synthetic effects with edited CC0 recordings. Driver, wedge, and iron strikes differ; rolling, wind, river entry, cannon, cup, and obstacles have separate cues. The river plays one quiet splash on entry with a short repeat guard. Applause is shorter and quieter; the purchase reveal is visually celebratory but plays only a lowered-volume party horn, without the former clank or confetti pop. Buttons give a slight hover bump. | The course should sound like golf while the reward moments remain exciting without repeated loud applause. | Sound files and JavaScript passed local checks; final listening pass on the live build is pending, including the mute toggle, river entry, and purchase reveal. |
+| Mr. Kiang: make courses more varied and support player-made maps. | Documented as the next product area after the current sound pass. | A separate editor and publishing workflow need their own design, validation, and storage work rather than a rushed in-game toggle. | Pending level-editor design and implementation. |
 
 ## Ship checklist
 
 - [ ] Complete a full task-by-task classmate session; Maddy's feedback is recorded above, but the full observation record is still needed.
 - [ ] Full external AI User Test Prompt output pasted above.
-- [ ] At least two test problems selected and addressed, or a written reason explains why no change was needed.
-- [ ] Automated smoke and 3D physics checks pass.
+- [x] Two reported classmate problems selected and addressed in the local build; production retest still pending.
+- [x] Automated smoke, 3D geometry, and 3D physics checks passed locally on November 4, 2026.
 - [ ] Production Vercel URL tested after the final push.
-- [ ] Commit `CP5: playtest notes` created after the evidence is added.
-- [ ] `Changes after the classmate / AI test` completed.
+- [x] Commit `CP5: playtest notes` exists (`66a7e1f`); its underlying classmate and AI evidence remains incomplete.
+- [x] Changes made in response to Maddy's two findings are documented above with reasons.
+- [ ] Record of Thinking written from actual commits, chats, and playtest evidence.
+- [ ] Checkpoint history: `CP0: Initial setup of repo` is absent. The exact CP1–CP5 messages exist, but the counts of own commits before CP3, CP4, and CP5 are 2, 2, and 1 rather than the requested 3. Do not invent or backdate missing work.
+- [ ] Make at least three genuine, descriptive commits after CP5 before the exact `CP6: ship` checkpoint.
 - [ ] Commit `CP6: ship` created after fixes, documentation, and deployment verification.
+
+**Deployment check on November 4:** The public shop and course opened, but the sound toggle from this local version was absent. The latest sound changes, including the purchase party horn, therefore have not been verified on the production site. Check both pages again after deployment.
